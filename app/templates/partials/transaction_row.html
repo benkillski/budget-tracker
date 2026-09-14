@@ -1,0 +1,18 @@
+<tr id="txn-{{ transaction.id }}">
+    <td>{{ transaction.posted_at.strftime("%Y-%m-%d") }}</td>
+    <td>{{ transaction.payee }}</td>
+    <td>{{ format_money(transaction.amount_cents) }}</td>
+    <td>
+        <select name="category_id"
+                hx-post="/transactions/{{ transaction.id }}/category"
+                hx-target="#txn-{{ transaction.id }}"
+                hx-swap="outerHTML">
+            <option value="">Uncategorized</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if transaction.category_id == category.id %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </td>
+</tr>
