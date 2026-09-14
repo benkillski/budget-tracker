@@ -6,6 +6,8 @@
 <p style="background:#f8d7da;padding:0.5rem;border-radius:4px">
     Last sync failed at {{ sync_status.last_synced_at.strftime("%Y-%m-%d %H:%M") }} UTC: {{ sync_status.last_error }}
 </p>
+{% elif sync_status.last_synced_at is none %}
+<p style="background:#fff3cd;padding:0.5rem;border-radius:4px">No sync has run yet.</p>
 {% else %}
 <p style="color:#666">Last synced {{ sync_status.last_synced_at.strftime("%Y-%m-%d %H:%M") }} UTC</p>
 {% endif %}

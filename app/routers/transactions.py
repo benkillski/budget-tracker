@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
@@ -41,6 +41,8 @@ def set_category(
     session: Session = Depends(get_session),
 ):
     transaction = session.get(Transaction, transaction_id)
+    if transaction is None:
+        raise HTTPException(status_code=404)
     transaction.category_id = int(category_id) if category_id else None
     transaction.rule_applied_id = None
     session.add(transaction)

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app.models import Account, Category, SyncStatus, Transaction
+from app.timeutil import utc_now
 
 
 def test_home_shows_no_sync_message_when_never_synced(client):
@@ -31,7 +32,7 @@ def test_home_shows_accounts_and_budget_progress(session, client):
     session.refresh(category)
 
     session.add(
-        Transaction(account_id=account.id, posted_at=datetime.utcnow(), payee="Store",
+        Transaction(account_id=account.id, posted_at=utc_now(), payee="Store",
                     amount_cents=-1500, category_id=category.id)
     )
     session.commit()
@@ -42,3 +43,11 @@ def test_home_shows_accounts_and_budget_progress(session, client):
     assert "Checking" in response.text
     assert "$1,500.00" in response.text
     assert "Groceries" in response.text
+
+
+def test_home_shows_last_synced_time_on_success(session, client):
+    session.add(SyncStatus(id=1, last_synced_at=utc_now(), last_sync_ok=True))
+    session.commit()
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Last synced" in response.text

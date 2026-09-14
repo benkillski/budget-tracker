@@ -1,11 +1,10 @@
-from datetime import date
-
 from fastapi import APIRouter, Depends, Request
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
 from app.budget_calc import compute_budget_period
 from app.db import get_session
+from app.timeutil import utc_now
 
 router = APIRouter(prefix="/trends")
 templates = Jinja2Templates(directory="app/templates")
@@ -15,7 +14,7 @@ MONTHS_BACK = 6
 
 @router.get("")
 def trends(request: Request, session: Session = Depends(get_session)):
-    today = date.today()
+    today = utc_now().date()
     months: list[tuple[int, int]] = []
     year, month = today.year, today.month
     for _ in range(MONTHS_BACK):
