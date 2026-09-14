@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.config import settings
 from app.db import engine, init_db
+from app.routers import dashboard
 from app.scheduler import create_scheduler
 
 
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Budget Tracker", lifespan=lifespan)
+app.include_router(dashboard.router)
 
 
 @app.get("/health")

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+{% if sync_status is none %}
+<p style="background:#fff3cd;padding:0.5rem;border-radius:4px">No sync has run yet.</p>
+{% elif not sync_status.last_sync_ok %}
+<p style="background:#f8d7da;padding:0.5rem;border-radius:4px">
+    Last sync failed at {{ sync_status.last_synced_at.strftime("%Y-%m-%d %H:%M") }} UTC: {{ sync_status.last_error }}
+</p>
+{% else %}
+<p style="color:#666">Last synced {{ sync_status.last_synced_at.strftime("%Y-%m-%d %H:%M") }} UTC</p>
+{% endif %}
+
+<h1>{{ month_label }}</h1>
+
+<h2>Accounts</h2>
+<ul>
+{% for account in accounts %}
+    <li>{{ account.name }}: {{ format_money(account.balance_cents) }}</li>
+{% endfor %}
+</ul>
+
+<h2>Budgets</h2>
+{% for period in periods %}
+    {% if period.limit_cents > 0 %}
+    <div>
+        <strong>{{ period.category_name }}</strong>
+        - {{ format_money(period.spent_cents) }} / {{ format_money(period.limit_cents) }}
+        ({{ "%.0f"|format(period.pct_used) }}%)
+        <div class="bar">
+            <div class="bar-fill {% if period.pct_used >= 100 %}over{% elif period.pct_used >= 80 %}warn{% else %}ok{% endif %}"
+                 style="width: {{ [period.pct_used, 100]|min }}%"></div>
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
+{% endblock %}

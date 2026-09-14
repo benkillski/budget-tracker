@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Budget Tracker</title>
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 900px; }
+        nav a { margin-right: 1rem; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { text-align: left; padding: 0.4rem; border-bottom: 1px solid #ddd; }
+        .bar { background: #eee; border-radius: 4px; overflow: hidden; height: 1rem; margin: 0.25rem 0; }
+        .bar-fill { height: 100%; }
+        .bar-fill.ok { background: #4caf50; }
+        .bar-fill.warn { background: #ff9800; }
+        .bar-fill.over { background: #f44336; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/transactions">Transactions</a>
+        <a href="/rules">Rules</a>
+        <a href="/trends">Trends</a>
+        <a href="/settings">Settings</a>
+        <a href="/import">Import CSV</a>
+    </nav>
+    <hr>
+    {% block content %}{% endblock %}
+</body>
+</html>
