@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from app.config import settings
 from app.db import engine, init_db
-from app.routers import dashboard, rules, settings as settings_router, transactions, trends
+from app.routers import dashboard, import_router, rules, settings as settings_router, transactions, trends
 from app.scheduler import create_scheduler
 
 
@@ -23,6 +23,7 @@ app.include_router(transactions.router)
 app.include_router(rules.router)
 app.include_router(trends.router)
 app.include_router(settings_router.router)
+app.include_router(import_router.router)
 
 
 @app.get("/health")
