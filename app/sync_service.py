@@ -95,15 +95,6 @@ def run_sync(session: Session, client: SimpleFINClient, warning_pct: int, alert_
             ).first()
             if already_alerted is not None:
                 continue
-            session.add(
-                AlertLog(
-                    category_id=period.category_id,
-                    year=now.year,
-                    month=now.month,
-                    threshold_pct=threshold,
-                    sent_at=now,
-                )
-            )
             result.newly_crossed.append(
                 ThresholdCrossing(
                     category_id=period.category_id,
@@ -113,5 +104,4 @@ def run_sync(session: Session, client: SimpleFINClient, warning_pct: int, alert_
                     limit_cents=period.limit_cents,
                 )
             )
-    session.commit()
     return result

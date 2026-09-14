@@ -2,7 +2,7 @@ from sqlmodel import Session
 
 from app.budget_calc import compute_budget_period
 from app.config import Settings
-from app.models import SyncStatus
+from app.models import AlertLog, SyncStatus
 from app.notifications import SMTPConfig, send_alert_email, send_digest_email
 from app.simplefin_client import SimpleFINClient
 from app.sync_service import run_sync
@@ -26,6 +26,23 @@ def daily_sync_job(settings: Settings, engine) -> None:
         status = session.get(SyncStatus, 1) or SyncStatus(id=1)
         try:
             result = run_sync(session, client, settings.warning_threshold_pct, settings.alert_threshold_pct)
+
+            smtp_config = _smtp_config(settings)
+            now = utc_now()
+            for crossing in result.newly_crossed:
+                # Send first, log only after success: if SMTP fails, no AlertLog is
+                # written, so the threshold crossing is retried on the next sync.
+                send_alert_email(smtp_config, crossing)
+                session.add(
+                    AlertLog(
+                        category_id=crossing.category_id,
+                        year=now.year,
+                        month=now.month,
+                        threshold_pct=crossing.threshold_pct,
+                        sent_at=now,
+                    )
+                )
+                session.commit()
         except Exception as exc:
             status.last_synced_at = utc_now()
             status.last_sync_ok = False
@@ -39,10 +56,6 @@ def daily_sync_job(settings: Settings, engine) -> None:
         status.last_error = None
         session.add(status)
         session.commit()
-
-        smtp_config = _smtp_config(settings)
-        for crossing in result.newly_crossed:
-            send_alert_email(smtp_config, crossing)
 
 
 def digest_job(settings: Settings, engine) -> None:

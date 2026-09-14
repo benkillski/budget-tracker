@@ -2,9 +2,10 @@ from datetime import datetime
 
 from sqlmodel import select
 
-from app.models import Account, Category, Rule
+from app.models import Account, AlertLog, Category, Rule
 from app.simplefin_client import SimpleFINAccount, SimpleFINTransaction
 from app.sync_service import run_sync
+from app.timeutil import utc_now
 
 
 class FakeSimpleFINClient:
@@ -83,6 +84,22 @@ def test_run_sync_reports_newly_crossed_thresholds_once(session):
     crossed_thresholds = {c.threshold_pct for c in result.newly_crossed}
     assert crossed_thresholds == {80, 100}
     assert all(c.category_name == "Groceries" for c in result.newly_crossed)
+
+    # run_sync no longer writes AlertLog itself (see app/jobs.py::daily_sync_job,
+    # which logs only after a successful send). Simulate that here so the
+    # "alert once per month" gate inside run_sync can be exercised.
+    now = utc_now()
+    for crossing in result.newly_crossed:
+        session.add(
+            AlertLog(
+                category_id=crossing.category_id,
+                year=now.year,
+                month=now.month,
+                threshold_pct=crossing.threshold_pct,
+                sent_at=now,
+            )
+        )
+    session.commit()
 
     # A second sync with no new transactions must not re-alert.
     fake_account.transactions = []
