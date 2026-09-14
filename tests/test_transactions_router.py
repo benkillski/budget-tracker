@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from app.models import Account, Category, Transaction
+from app.models import Account, Category, Rule, Transaction
 
 
 def _seed(session):
@@ -12,10 +12,15 @@ def _seed(session):
     session.refresh(account)
     session.refresh(category)
 
+    rule = Rule(match_type="contains", match_value="MYSTERY", category_id=category.id, priority=0)
+    session.add(rule)
+    session.commit()
+    session.refresh(rule)
+
     categorized = Transaction(account_id=account.id, posted_at=datetime(2026, 9, 1), payee="Kroger",
                                amount_cents=-1000, category_id=category.id)
     uncategorized = Transaction(account_id=account.id, posted_at=datetime(2026, 9, 2), payee="Mystery Charge",
-                                 amount_cents=-500)
+                                 amount_cents=-500, rule_applied_id=rule.id)
     session.add(categorized)
     session.add(uncategorized)
     session.commit()
@@ -58,3 +63,9 @@ def test_set_category_persists_and_returns_updated_row(session, client):
 
     session.refresh(uncategorized)
     assert uncategorized.category_id == category.id
+    assert uncategorized.rule_applied_id is None
+
+
+def test_set_category_returns_404_for_unknown_transaction(client):
+    response = client.post("/transactions/99999/category", data={"category_id": ""})
+    assert response.status_code == 404

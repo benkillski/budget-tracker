@@ -33,7 +33,9 @@ def test_update_category_limit_changes_existing_category(session, client):
     assert category.monthly_limit_cents == 15050
 
 
-def test_settings_page_shows_simplefin_not_configured_by_default(client):
+def test_settings_page_shows_simplefin_not_configured_by_default(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "simplefin_access_url", "")
     response = client.get("/settings")
     assert response.status_code == 200
     assert "Not configured" in response.text
