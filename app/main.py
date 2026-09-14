@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from app.config import settings
 from app.db import engine, init_db
-from app.routers import dashboard, rules, transactions
+from app.routers import dashboard, rules, transactions, trends
 from app.scheduler import create_scheduler
 
 
@@ -21,6 +21,7 @@ app = FastAPI(title="Budget Tracker", lifespan=lifespan)
 app.include_router(dashboard.router)
 app.include_router(transactions.router)
 app.include_router(rules.router)
+app.include_router(trends.router)
 
 
 @app.get("/health")

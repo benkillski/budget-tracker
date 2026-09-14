@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Spending trends (last {{ labels|length }} months)</h1>
+<canvas id="trends-chart" height="100"></canvas>
+<script>
+const labels = {{ labels|tojson }};
+const series = {{ series|tojson }};
+const datasets = Object.entries(series).map(([name, data]) => ({ label: name, data }));
+new Chart(document.getElementById("trends-chart"), {
+    type: "line",
+    data: { labels, datasets },
+});
+</script>
+{% endblock %}
