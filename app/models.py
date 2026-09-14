@@ -33,12 +33,12 @@ class Transaction(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     simplefin_transaction_id: Optional[str] = Field(default=None, unique=True, index=True)
     csv_dedup_hash: Optional[str] = Field(default=None, unique=True, index=True)
-    account_id: int = Field(foreign_key="account.id")
+    account_id: int = Field(foreign_key="account.id", index=True)
     posted_at: datetime
     payee: str
     amount_cents: int
     pending: bool = Field(default=False)
-    category_id: Optional[int] = Field(default=None, foreign_key="category.id")
+    category_id: Optional[int] = Field(default=None, foreign_key="category.id", index=True)
     rule_applied_id: Optional[int] = Field(default=None, foreign_key="rule.id")
     import_source: str = Field(default="simplefin")  # "simplefin" | "csv"
 
