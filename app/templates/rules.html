@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Rules</h1>
+<table>
+<thead><tr><th>Priority</th><th>Match</th><th>Value</th><th>Category</th></tr></thead>
+<tbody>
+{% for rule in rules %}
+<tr>
+    <td>{{ rule.priority }}</td>
+    <td>{{ rule.match_type }}</td>
+    <td>{{ rule.match_value }}</td>
+    <td>{{ (categories|selectattr("id", "equalto", rule.category_id)|first).name }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h2>New rule</h2>
+<form method="post" action="/rules">
+    <select name="match_type">
+        <option value="contains">Contains</option>
+        <option value="equals">Equals</option>
+        <option value="regex">Regex</option>
+    </select>
+    <input name="match_value" placeholder="e.g. KROGER" required>
+    <select name="category_id">
+        {% for category in categories %}
+        <option value="{{ category.id }}">{{ category.name }}</option>
+        {% endfor %}
+    </select>
+    <input name="priority" type="number" value="0">
+    <button type="submit">Add rule</button>
+</form>
+{% endblock %}
