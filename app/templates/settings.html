@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Settings</h1>
+
+<h2>SimpleFIN connection</h2>
+<p>{{ "Configured" if simplefin_configured else "Not configured (set SIMPLEFIN_ACCESS_URL in .env and redeploy)" }}</p>
+
+<h2>Notifications</h2>
+<p>Warning threshold: {{ warning_threshold_pct }}% &middot; Alert threshold: {{ alert_threshold_pct }}% &middot; Digest: {{ digest_frequency }}</p>
+<p><em>Edit these via the .env file and redeploy.</em></p>
+
+<h2>Categories</h2>
+<table>
+<thead><tr><th>Name</th><th>Monthly limit</th></tr></thead>
+<tbody>
+{% for category in categories %}
+<tr>
+    <td>{{ category.name }}</td>
+    <td>
+        <form method="post" action="/settings/categories/{{ category.id }}" style="display:inline">
+            <input name="monthly_limit" value="{{ "%.2f"|format(category.monthly_limit_cents / 100) }}" size="8">
+            <button type="submit">Update</button>
+        </form>
+    </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h3>New category</h3>
+<form method="post" action="/settings/categories">
+    <input name="name" placeholder="e.g. Groceries" required>
+    <input name="monthly_limit" placeholder="0.00" value="0.00">
+    <button type="submit">Add category</button>
+</form>
+{% endblock %}
