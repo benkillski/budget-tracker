@@ -2,7 +2,7 @@
 {% block content %}
 <h1>Rules</h1>
 <table>
-<thead><tr><th>Priority</th><th>Match</th><th>Value</th><th>Category</th></tr></thead>
+<thead><tr><th>Priority</th><th>Match</th><th>Value</th><th>Category</th><th></th></tr></thead>
 <tbody>
 {% for rule in rules %}
 <tr>
@@ -10,6 +10,12 @@
     <td>{{ rule.match_type }}</td>
     <td>{{ rule.match_value }}</td>
     <td>{{ (categories|selectattr("id", "equalto", rule.category_id)|first).name }}</td>
+    <td>
+        <form method="post" action="/rules/{{ rule.id }}/delete" style="display:inline"
+              onsubmit="return confirm('Delete this rule? Transactions previously matched by it keep their category; only the rule itself is removed.');">
+            <button type="submit">Delete</button>
+        </form>
+    </td>
 </tr>
 {% endfor %}
 </tbody>

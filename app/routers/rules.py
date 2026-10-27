@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -42,4 +42,18 @@ def create_rule_from_transaction(
         transaction.category_id = category_id
         session.add(transaction)
         session.commit()
+    return RedirectResponse("/rules", status_code=303)
+
+
+@router.post("/{rule_id}/delete")
+def delete_rule(rule_id: int, session: Session = Depends(get_session)):
+    rule = session.get(Rule, rule_id)
+    if rule is None:
+        raise HTTPException(status_code=404, detail="Rule not found")
+
+    for txn in session.exec(select(Transaction).where(Transaction.rule_applied_id == rule_id)).all():
+        txn.rule_applied_id = None
+        session.add(txn)
+    session.delete(rule)
+    session.commit()
     return RedirectResponse("/rules", status_code=303)

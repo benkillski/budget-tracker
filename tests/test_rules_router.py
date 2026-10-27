@@ -50,3 +50,42 @@ def test_create_rule_from_transaction_categorizes_it_and_adds_rule(session, clie
 
     rules = session.exec(select(Rule)).all()
     assert any(r.match_value == "CHIPOTLE 456" for r in rules)
+
+
+def test_delete_rule_removes_it_and_clears_rule_applied_on_transactions(session, client):
+    account = Account(simplefin_account_id="acc-1", name="Checking", institution="Test Bank")
+    category = Category(name="Dining", monthly_limit_cents=10000)
+    session.add(account)
+    session.add(category)
+    session.commit()
+    session.refresh(account)
+    session.refresh(category)
+    rule = Rule(match_type="contains", match_value="CHIPOTLE", category_id=category.id, priority=0)
+    session.add(rule)
+    session.commit()
+    session.refresh(rule)
+    txn = Transaction(
+        account_id=account.id,
+        posted_at=datetime(2026, 9, 1),
+        payee="CHIPOTLE 1",
+        amount_cents=-1200,
+        category_id=category.id,
+        rule_applied_id=rule.id,
+    )
+    session.add(txn)
+    session.commit()
+    session.refresh(txn)
+
+    response = client.post(f"/rules/{rule.id}/delete", follow_redirects=False)
+    assert response.status_code == 303
+
+    assert session.get(Rule, rule.id) is None
+    session.refresh(txn)
+    assert txn.rule_applied_id is None
+    # Category stays — only the "which rule categorized me" pointer is cleared.
+    assert txn.category_id == category.id
+
+
+def test_delete_rule_returns_404_for_unknown_id(client):
+    response = client.post("/rules/99999/delete", follow_redirects=False)
+    assert response.status_code == 404
