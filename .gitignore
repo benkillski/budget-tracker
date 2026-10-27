@@ -3,8 +3,33 @@
 
 __pycache__/
 *.pyc
-.env
-data/
 .pytest_cache/
 .venv/
 *.egg-info/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Local data
+data/
+*.sqlite
+*.sqlite3
+*.db
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
