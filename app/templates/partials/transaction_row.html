@@ -24,4 +24,13 @@
             {% endfor %}
         </select>
     </td>
+    <td>
+        {% if transaction.category_id %}
+        <form method="post" action="/rules/from-transaction/{{ transaction.id }}" style="display:inline"
+              title="Create a 'contains {{ transaction.payee }}' rule for this category">
+            <input type="hidden" name="category_id" value="{{ transaction.category_id }}">
+            <button type="submit">+rule</button>
+        </form>
+        {% endif %}
+    </td>
 </tr>

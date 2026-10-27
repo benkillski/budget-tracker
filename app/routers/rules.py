@@ -42,7 +42,7 @@ def create_rule_from_transaction(
         transaction.category_id = category_id
         session.add(transaction)
         session.commit()
-    return RedirectResponse("/rules", status_code=303)
+    return RedirectResponse("/transactions", status_code=303)
 
 
 @router.post("/{rule_id}")
