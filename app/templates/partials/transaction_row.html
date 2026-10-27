@@ -6,13 +6,6 @@
         {% endif %}
     </td>
     <td>
-        {% if transaction.transacted_at and transaction.transacted_at.date() != transaction.posted_at.date() %}
-            {{ transaction.transacted_at.strftime("%Y-%m-%d") }}
-        {% else %}
-            —
-        {% endif %}
-    </td>
-    <td>
         {% set account = accounts_by_id.get(transaction.account_id) if accounts_by_id else None %}
         {{ account.name if account else "—" }}
     </td>
@@ -20,13 +13,6 @@
         {{ transaction.payee }}
         {% if transaction.description and transaction.description != transaction.payee %}
         <br><small style="color:#666">{{ transaction.description }}</small>
-        {% endif %}
-    </td>
-    <td>
-        {% if transaction.memo %}
-            <small>{{ transaction.memo }}</small>
-        {% else %}
-            —
         {% endif %}
     </td>
     <td>{{ format_money(transaction.amount_cents) }}</td>
