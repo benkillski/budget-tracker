@@ -11,7 +11,7 @@
 
 <h2>Categories</h2>
 <table>
-<thead><tr><th>Name</th><th>Monthly limit</th></tr></thead>
+<thead><tr><th>Name</th><th>Monthly limit</th><th></th></tr></thead>
 <tbody>
 {% for category in categories %}
 <tr>
@@ -20,6 +20,12 @@
         <form method="post" action="/settings/categories/{{ category.id }}" style="display:inline">
             <input name="monthly_limit" value="{{ "%.2f"|format(category.monthly_limit_cents / 100) }}" size="8">
             <button type="submit">Update</button>
+        </form>
+    </td>
+    <td>
+        <form method="post" action="/settings/categories/{{ category.id }}/delete" style="display:inline"
+              onsubmit="return confirm('Delete category &quot;{{ category.name }}&quot;? Transactions in it will become uncategorized. Any rules targeting it must be removed first.');">
+            <button type="submit">Delete</button>
         </form>
     </td>
 </tr>

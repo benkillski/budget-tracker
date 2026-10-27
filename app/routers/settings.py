@@ -1,13 +1,13 @@
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from app.config import settings as app_settings
 from app.db import get_session
-from app.models import Category
+from app.models import AlertLog, Category, Rule, Transaction
 from app.money import to_cents
 
 router = APIRouter(prefix="/settings")
@@ -52,4 +52,27 @@ def update_category_limit(
         category.monthly_limit_cents = to_cents(Decimal(monthly_limit))
         session.add(category)
         session.commit()
+    return RedirectResponse("/settings", status_code=303)
+
+
+@router.post("/categories/{category_id}/delete")
+def delete_category(category_id: int, session: Session = Depends(get_session)):
+    category = session.get(Category, category_id)
+    if category is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    rule_count = len(session.exec(select(Rule).where(Rule.category_id == category_id)).all())
+    if rule_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Delete the {rule_count} rule(s) pointing at this category first.",
+        )
+
+    for txn in session.exec(select(Transaction).where(Transaction.category_id == category_id)).all():
+        txn.category_id = None
+        session.add(txn)
+    for alert in session.exec(select(AlertLog).where(AlertLog.category_id == category_id)).all():
+        session.delete(alert)
+    session.delete(category)
+    session.commit()
     return RedirectResponse("/settings", status_code=303)
