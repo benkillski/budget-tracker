@@ -18,14 +18,19 @@ def _accounts_by_id(session: Session) -> dict[int, Account]:
 def list_transactions(
     request: Request,
     uncategorized_only: bool = False,
-    account_id: int | None = None,
+    account_id: str = "",
     session: Session = Depends(get_session),
 ):
+    try:
+        selected_account_id: int | None = int(account_id) if account_id else None
+    except ValueError:
+        selected_account_id = None
+
     query = select(Transaction).order_by(Transaction.posted_at.desc())
     if uncategorized_only:
         query = query.where(Transaction.category_id.is_(None))
-    if account_id is not None:
-        query = query.where(Transaction.account_id == account_id)
+    if selected_account_id is not None:
+        query = query.where(Transaction.account_id == selected_account_id)
     transactions = session.exec(query).all()
     categories = session.exec(select(Category)).all()
     accounts = session.exec(select(Account).order_by(Account.name)).all()
@@ -38,7 +43,7 @@ def list_transactions(
             "categories": categories,
             "accounts": accounts,
             "accounts_by_id": accounts_by_id,
-            "selected_account_id": account_id,
+            "selected_account_id": selected_account_id,
             "format_money": format_money,
             "uncategorized_only": uncategorized_only,
         },

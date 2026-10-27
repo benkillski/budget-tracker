@@ -79,6 +79,20 @@ def test_list_transactions_shows_account_column(session, client):
     assert "Checking" in response.text  # account name rendered on each row
 
 
+def test_list_transactions_accepts_empty_account_id(session, client):
+    """Regression: the Account dropdown submits account_id= (empty) when
+    'All accounts' is picked. Must not 422 the request."""
+    _seed(session)
+
+    response = client.get("/transactions?account_id=")
+    assert response.status_code == 200
+    assert "Kroger" in response.text
+
+    response = client.get("/transactions?account_id=&uncategorized_only=true")
+    assert response.status_code == 200
+    assert "Mystery Charge" in response.text
+
+
 def test_list_transactions_filters_by_account(session, client):
     account1 = Account(simplefin_account_id="acc-1", name="Checking", institution="Test Bank")
     account2 = Account(simplefin_account_id="acc-2", name="Savings", institution="Test Bank")
