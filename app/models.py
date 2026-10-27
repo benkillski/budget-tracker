@@ -25,6 +25,7 @@ class Category(SQLModel, table=True):
 
 class Rule(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    source: str = Field(default="payee")  # "payee" | "description"
     match_type: str  # "contains" | "equals" | "regex"
     match_value: str
     category_id: int = Field(foreign_key="category.id")

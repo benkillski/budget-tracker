@@ -23,9 +23,18 @@ def create_rule(
     match_value: str = Form(...),
     category_id: int = Form(...),
     priority: int = Form(0),
+    source: str = Form("payee"),
     session: Session = Depends(get_session),
 ):
-    session.add(Rule(match_type=match_type, match_value=match_value, category_id=category_id, priority=priority))
+    session.add(
+        Rule(
+            source=source,
+            match_type=match_type,
+            match_value=match_value,
+            category_id=category_id,
+            priority=priority,
+        )
+    )
     session.commit()
     return RedirectResponse("/rules", status_code=303)
 
@@ -52,11 +61,13 @@ def update_rule(
     match_value: str = Form(...),
     category_id: int = Form(...),
     priority: int = Form(0),
+    source: str = Form("payee"),
     session: Session = Depends(get_session),
 ):
     rule = session.get(Rule, rule_id)
     if rule is None:
         raise HTTPException(status_code=404, detail="Rule not found")
+    rule.source = source
     rule.match_type = match_type
     rule.match_value = match_value
     rule.category_id = category_id

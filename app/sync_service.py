@@ -61,7 +61,7 @@ def run_sync(session: Session, client: SimpleFINClient, warning_pct: int, alert_
                 session.add(existing)
                 continue
 
-            matched_rule = apply_rules(sf_txn.payee, rules)
+            matched_rule = apply_rules(sf_txn.payee, rules, description=sf_txn.description or "")
             session.add(
                 Transaction(
                     simplefin_transaction_id=sf_txn.id,

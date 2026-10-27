@@ -107,6 +107,7 @@ def test_update_rule_changes_all_fields(session, client):
     response = client.post(
         f"/rules/{rule.id}",
         data={
+            "source": "description",
             "match_type": "regex",
             "match_value": "^KROGER",
             "category_id": str(second_cat.id),
@@ -117,10 +118,34 @@ def test_update_rule_changes_all_fields(session, client):
     assert response.status_code == 303
 
     session.refresh(rule)
+    assert rule.source == "description"
     assert rule.match_type == "regex"
     assert rule.match_value == "^KROGER"
     assert rule.category_id == second_cat.id
     assert rule.priority == 5
+
+
+def test_create_rule_with_description_source(session, client):
+    category = Category(name="Transfers", monthly_limit_cents=0)
+    session.add(category)
+    session.commit()
+    session.refresh(category)
+
+    response = client.post(
+        "/rules",
+        data={
+            "source": "description",
+            "match_type": "equals",
+            "match_value": "KEEP THE CHANGE TRANSFER",
+            "category_id": str(category.id),
+            "priority": "0",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    rule = session.exec(select(Rule)).first()
+    assert rule.source == "description"
 
 
 def test_update_rule_returns_404_for_unknown_id(session, client):

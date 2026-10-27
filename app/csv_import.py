@@ -63,7 +63,7 @@ def import_csv_transactions(session: Session, account_id: int, rows: list[RawTra
         existing = session.exec(select(Transaction).where(Transaction.csv_dedup_hash == dedup_hash)).first()
         if existing is not None:
             continue
-        matched_rule = apply_rules(raw.payee, rules)
+        matched_rule = apply_rules(raw.payee, rules, description=raw.description or "")
         session.add(
             Transaction(
                 account_id=account_id,
