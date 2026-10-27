@@ -1,6 +1,10 @@
 <tr id="txn-{{ transaction.id }}">
     <td>{{ transaction.posted_at.strftime("%Y-%m-%d") }}</td>
     <td>
+        {% set account = accounts_by_id.get(transaction.account_id) if accounts_by_id else None %}
+        {{ account.name if account else "—" }}
+    </td>
+    <td>
         {{ transaction.payee }}
         {% if transaction.description and transaction.description != transaction.payee %}
         <br><small style="color:#666">{{ transaction.description }}</small>

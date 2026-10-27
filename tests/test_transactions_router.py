@@ -71,6 +71,42 @@ def test_set_category_returns_404_for_unknown_transaction(client):
     assert response.status_code == 404
 
 
+def test_list_transactions_shows_account_column(session, client):
+    _seed(session)
+    response = client.get("/transactions")
+    assert response.status_code == 200
+    assert "<th>Account</th>" in response.text
+    assert "Checking" in response.text  # account name rendered on each row
+
+
+def test_list_transactions_filters_by_account(session, client):
+    account1 = Account(simplefin_account_id="acc-1", name="Checking", institution="Test Bank")
+    account2 = Account(simplefin_account_id="acc-2", name="Savings", institution="Test Bank")
+    session.add(account1)
+    session.add(account2)
+    session.commit()
+    session.refresh(account1)
+    session.refresh(account2)
+    session.add(
+        Transaction(account_id=account1.id, posted_at=datetime(2026, 9, 1), payee="Checking payee",
+                    amount_cents=-1000)
+    )
+    session.add(
+        Transaction(account_id=account2.id, posted_at=datetime(2026, 9, 2), payee="Savings payee",
+                    amount_cents=1000)
+    )
+    session.commit()
+
+    response = client.get(f"/transactions?account_id={account1.id}")
+    assert response.status_code == 200
+    assert "Checking payee" in response.text
+    assert "Savings payee" not in response.text
+
+    response = client.get(f"/transactions?account_id={account2.id}")
+    assert "Savings payee" in response.text
+    assert "Checking payee" not in response.text
+
+
 def test_list_transactions_renders_description_when_distinct_from_payee(session, client):
     account = Account(simplefin_account_id="acc-1", name="Checking", institution="Test Bank")
     session.add(account)

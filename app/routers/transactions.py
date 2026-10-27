@@ -3,30 +3,42 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models import Category, Transaction
+from app.models import Account, Category, Transaction
 from app.money import format_money
 
 router = APIRouter(prefix="/transactions")
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _accounts_by_id(session: Session) -> dict[int, Account]:
+    return {a.id: a for a in session.exec(select(Account)).all()}
+
+
 @router.get("")
 def list_transactions(
     request: Request,
     uncategorized_only: bool = False,
+    account_id: int | None = None,
     session: Session = Depends(get_session),
 ):
     query = select(Transaction).order_by(Transaction.posted_at.desc())
     if uncategorized_only:
         query = query.where(Transaction.category_id.is_(None))
+    if account_id is not None:
+        query = query.where(Transaction.account_id == account_id)
     transactions = session.exec(query).all()
     categories = session.exec(select(Category)).all()
+    accounts = session.exec(select(Account).order_by(Account.name)).all()
+    accounts_by_id = {a.id: a for a in accounts}
     return templates.TemplateResponse(
         request,
         "transactions.html",
         {
             "transactions": transactions,
             "categories": categories,
+            "accounts": accounts,
+            "accounts_by_id": accounts_by_id,
+            "selected_account_id": account_id,
             "format_money": format_money,
             "uncategorized_only": uncategorized_only,
         },
@@ -52,5 +64,10 @@ def set_category(
     return templates.TemplateResponse(
         request,
         "partials/transaction_row.html",
-        {"transaction": transaction, "categories": categories, "format_money": format_money},
+        {
+            "transaction": transaction,
+            "categories": categories,
+            "accounts_by_id": _accounts_by_id(session),
+            "format_money": format_money,
+        },
     )

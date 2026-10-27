@@ -1,15 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Transactions</h1>
-<p>
-    {% if uncategorized_only %}
-        <a href="/transactions">Show all</a>
-    {% else %}
-        <a href="/transactions?uncategorized_only=true">Show uncategorized only</a>
-    {% endif %}
-</p>
+
+<form method="get" action="/transactions" style="display:flex;gap:1rem;align-items:center;margin:1rem 0;flex-wrap:wrap">
+    <label>
+        Account:
+        <select name="account_id" onchange="this.form.submit()">
+            <option value="">All accounts</option>
+            {% for account in accounts %}
+            <option value="{{ account.id }}" {% if selected_account_id == account.id %}selected{% endif %}>
+                {{ account.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>
+        <input type="checkbox" name="uncategorized_only" value="true" {% if uncategorized_only %}checked{% endif %}
+               onchange="this.form.submit()">
+        Uncategorized only
+    </label>
+    <noscript><button type="submit">Apply</button></noscript>
+</form>
+
 <table>
-    <thead><tr><th>Date</th><th>Payee</th><th>Amount</th><th>Category</th></tr></thead>
+    <thead><tr><th>Date</th><th>Account</th><th>Payee</th><th>Amount</th><th>Category</th></tr></thead>
     <tbody>
     {% for transaction in transactions %}
         {% include "partials/transaction_row.html" %}
