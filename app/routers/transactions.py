@@ -19,20 +19,27 @@ def list_transactions(
     request: Request,
     uncategorized_only: bool = False,
     account_id: str = "",
+    category_id: str = "",
     session: Session = Depends(get_session),
 ):
     try:
         selected_account_id: int | None = int(account_id) if account_id else None
     except ValueError:
         selected_account_id = None
+    try:
+        selected_category_id: int | None = int(category_id) if category_id else None
+    except ValueError:
+        selected_category_id = None
 
     query = select(Transaction).order_by(Transaction.posted_at.desc())
     if uncategorized_only:
         query = query.where(Transaction.category_id.is_(None))
     if selected_account_id is not None:
         query = query.where(Transaction.account_id == selected_account_id)
+    if selected_category_id is not None:
+        query = query.where(Transaction.category_id == selected_category_id)
     transactions = session.exec(query).all()
-    categories = session.exec(select(Category)).all()
+    categories = session.exec(select(Category).order_by(Category.name)).all()
     accounts = session.exec(select(Account).order_by(Account.name)).all()
     accounts_by_id = {a.id: a for a in accounts}
     return templates.TemplateResponse(
@@ -44,6 +51,7 @@ def list_transactions(
             "accounts": accounts,
             "accounts_by_id": accounts_by_id,
             "selected_account_id": selected_account_id,
+            "selected_category_id": selected_category_id,
             "format_money": format_money,
             "uncategorized_only": uncategorized_only,
         },

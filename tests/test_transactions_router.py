@@ -93,6 +93,22 @@ def test_list_transactions_accepts_empty_account_id(session, client):
     assert "Mystery Charge" in response.text
 
 
+def test_list_transactions_filters_by_category(session, client):
+    category, categorized, uncategorized = _seed(session)
+
+    response = client.get(f"/transactions?category_id={category.id}")
+    assert response.status_code == 200
+    assert "Kroger" in response.text
+    assert "Mystery Charge" not in response.text
+
+
+def test_list_transactions_accepts_empty_category_id(session, client):
+    _seed(session)
+    response = client.get("/transactions?category_id=")
+    assert response.status_code == 200
+    assert "Kroger" in response.text
+
+
 def test_list_transactions_filters_by_account(session, client):
     account1 = Account(simplefin_account_id="acc-1", name="Checking", institution="Test Bank")
     account2 = Account(simplefin_account_id="acc-2", name="Savings", institution="Test Bank")

@@ -15,6 +15,17 @@
         </select>
     </label>
     <label>
+        Category:
+        <select name="category_id" onchange="this.form.submit()">
+            <option value="">All categories</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if selected_category_id == category.id %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>
         <input type="checkbox" name="uncategorized_only" value="true" {% if uncategorized_only %}checked{% endif %}
                onchange="this.form.submit()">
         Uncategorized only
