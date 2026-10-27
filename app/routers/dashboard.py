@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
-from app.budget_calc import compute_budget_period
+from app.budget_calc import compute_budget_period, compute_income_period
 from app.db import get_session
 from app.models import Account, SyncStatus
 from app.money import format_money
@@ -31,8 +31,13 @@ def home(
         year, month = now.year, now.month
 
     periods = compute_budget_period(session, year, month)
+    incomes = compute_income_period(session, year, month)
     accounts = session.exec(select(Account)).all()
     sync_status = session.get(SyncStatus, 1)
+
+    total_income_cents = sum(i.received_cents for i in incomes)
+    total_spent_cents = sum(p.spent_cents for p in periods)
+    net_cents = total_income_cents - total_spent_cents
 
     prev_year, prev_month = _shift_month(year, month, -1)
     next_year, next_month = _shift_month(year, month, +1)
@@ -42,6 +47,10 @@ def home(
         "home.html",
         {
             "periods": periods,
+            "incomes": incomes,
+            "total_income_cents": total_income_cents,
+            "total_spent_cents": total_spent_cents,
+            "net_cents": net_cents,
             "accounts": accounts,
             "format_money": format_money,
             "month_label": date(year, month, 1).strftime("%B %Y"),

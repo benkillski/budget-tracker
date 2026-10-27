@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from app.budget_calc import compute_budget_period
+from app.budget_calc import compute_budget_period, compute_income_period
 from app.models import Account, Category, Transaction
 
 
@@ -59,3 +59,52 @@ def test_pct_used_is_zero_when_limit_is_zero(session):
     [result] = compute_budget_period(session, 2026, 9)
 
     assert result.pct_used == 0.0
+
+
+def test_budget_period_excludes_income_categories(session):
+    account = _seed_account(session)
+    salary = Category(name="Salary", monthly_limit_cents=0, is_income=True)
+    groceries = Category(name="Groceries", monthly_limit_cents=10000)
+    session.add(salary)
+    session.add(groceries)
+    session.commit()
+    session.refresh(salary)
+    session.refresh(groceries)
+
+    results = compute_budget_period(session, 2026, 9)
+    assert [r.category_name for r in results] == ["Groceries"]
+
+
+def test_income_period_sums_positives_for_income_categories(session):
+    account = _seed_account(session)
+    salary = Category(name="Salary", monthly_limit_cents=0, is_income=True)
+    refunds = Category(name="Refunds", monthly_limit_cents=0, is_income=True)
+    groceries = Category(name="Groceries", monthly_limit_cents=10000, is_income=False)
+    session.add(salary)
+    session.add(refunds)
+    session.add(groceries)
+    session.commit()
+    session.refresh(salary)
+    session.refresh(refunds)
+    session.refresh(groceries)
+
+    session.add_all(
+        [
+            Transaction(account_id=account.id, posted_at=datetime(2026, 9, 1), payee="Paycheck 1",
+                        amount_cents=250000, category_id=salary.id),
+            Transaction(account_id=account.id, posted_at=datetime(2026, 9, 15), payee="Paycheck 2",
+                        amount_cents=250000, category_id=salary.id),
+            Transaction(account_id=account.id, posted_at=datetime(2026, 9, 20), payee="Target refund",
+                        amount_cents=1500, category_id=refunds.id),
+            # Prior-month paycheck must NOT count.
+            Transaction(account_id=account.id, posted_at=datetime(2026, 8, 31), payee="Old paycheck",
+                        amount_cents=250000, category_id=salary.id),
+            # Groceries row stays out of income results, even if positive.
+            Transaction(account_id=account.id, posted_at=datetime(2026, 9, 10), payee="Groceries refund",
+                        amount_cents=500, category_id=groceries.id),
+        ]
+    )
+    session.commit()
+
+    results = {r.category_name: r.received_cents for r in compute_income_period(session, 2026, 9)}
+    assert results == {"Salary": 500000, "Refunds": 1500}

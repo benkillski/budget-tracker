@@ -25,12 +25,17 @@ class CategorySpend:
         return (self.spent_cents / self.limit_cents) * 100
 
 
-def compute_budget_period(session: Session, year: int, month: int) -> list[CategorySpend]:
+def _month_bounds(year: int, month: int) -> tuple[datetime, datetime]:
     start = datetime(year, month, 1)
     last_day = monthrange(year, month)[1]
     end = datetime(year, month, last_day, 23, 59, 59)
+    return start, end
 
-    categories = session.exec(select(Category)).all()
+
+def compute_budget_period(session: Session, year: int, month: int) -> list[CategorySpend]:
+    start, end = _month_bounds(year, month)
+
+    categories = session.exec(select(Category).where(Category.is_income == False)).all()  # noqa: E712
 
     spend_rows = session.exec(
         select(Transaction.category_id, func.sum(-Transaction.amount_cents).label("spent"))
@@ -55,3 +60,37 @@ def compute_budget_period(session: Session, year: int, month: int) -> list[Categ
             )
         )
     return results
+
+
+@dataclass
+class CategoryIncome:
+    category_id: int
+    category_name: str
+    received_cents: int
+
+
+def compute_income_period(session: Session, year: int, month: int) -> list[CategoryIncome]:
+    start, end = _month_bounds(year, month)
+
+    categories = session.exec(select(Category).where(Category.is_income == True)).all()  # noqa: E712
+
+    income_rows = session.exec(
+        select(Transaction.category_id, func.sum(Transaction.amount_cents).label("received"))
+        .where(
+            Transaction.posted_at >= start,
+            Transaction.posted_at <= end,
+            Transaction.amount_cents > 0,
+            Transaction.category_id.is_not(None),
+        )
+        .group_by(Transaction.category_id)
+    ).all()
+    received_by_category = {category_id: received for category_id, received in income_rows}
+
+    return [
+        CategoryIncome(
+            category_id=category.id,
+            category_name=category.name,
+            received_cents=received_by_category.get(category.id, 0),
+        )
+        for category in categories
+    ]

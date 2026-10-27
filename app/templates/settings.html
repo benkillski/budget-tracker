@@ -11,7 +11,7 @@
 
 <h2>Categories</h2>
 <table>
-<thead><tr><th>Name</th><th>Monthly limit</th><th></th></tr></thead>
+<thead><tr><th>Name</th><th>Monthly limit</th><th>Income?</th><th></th></tr></thead>
 <tbody>
 {% for category in categories %}
 <tr>
@@ -19,9 +19,14 @@
     <td>
         <form method="post" action="/settings/categories/{{ category.id }}" style="display:inline">
             <input name="monthly_limit" value="{{ "%.2f"|format(category.monthly_limit_cents / 100) }}" size="8">
+            <label style="margin-left:0.5rem">
+                <input type="checkbox" name="is_income" value="true" {% if category.is_income %}checked{% endif %}>
+                Income
+            </label>
             <button type="submit">Update</button>
         </form>
     </td>
+    <td style="text-align:center">{{ "✓" if category.is_income else "" }}</td>
     <td>
         <form method="post" action="/settings/categories/{{ category.id }}/delete" style="display:inline"
               onsubmit="return confirm('Delete category &quot;{{ category.name }}&quot;? Transactions in it will become uncategorized. Any rules targeting it must be removed first.');">
@@ -37,6 +42,11 @@
 <form method="post" action="/settings/categories">
     <input name="name" placeholder="e.g. Groceries" required>
     <input name="monthly_limit" placeholder="0.00" value="0.00">
+    <label><input type="checkbox" name="is_income" value="true"> Income</label>
     <button type="submit">Add category</button>
 </form>
+<p style="color:#666;font-size:0.9em">
+    Income categories sum positive (incoming) amounts and show up in the Income section of the dashboard.
+    Regular categories sum negative (spending) amounts.
+</p>
 {% endblock %}

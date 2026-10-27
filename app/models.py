@@ -20,6 +20,7 @@ class Category(SQLModel, table=True):
     name: str = Field(index=True)
     parent_id: Optional[int] = Field(default=None, foreign_key="category.id")
     monthly_limit_cents: int = Field(default=0)
+    is_income: bool = Field(default=False)
 
 
 class Rule(SQLModel, table=True):

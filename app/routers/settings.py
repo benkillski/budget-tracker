@@ -34,9 +34,16 @@ def show_settings(request: Request, session: Session = Depends(get_session)):
 def create_category(
     name: str = Form(...),
     monthly_limit: str = Form("0"),
+    is_income: bool = Form(False),
     session: Session = Depends(get_session),
 ):
-    session.add(Category(name=name, monthly_limit_cents=to_cents(Decimal(monthly_limit))))
+    session.add(
+        Category(
+            name=name,
+            monthly_limit_cents=to_cents(Decimal(monthly_limit)),
+            is_income=is_income,
+        )
+    )
     session.commit()
     return RedirectResponse("/settings", status_code=303)
 
@@ -45,11 +52,13 @@ def create_category(
 def update_category_limit(
     category_id: int,
     monthly_limit: str = Form(...),
+    is_income: bool = Form(False),
     session: Session = Depends(get_session),
 ):
     category = session.get(Category, category_id)
     if category is not None:
         category.monthly_limit_cents = to_cents(Decimal(monthly_limit))
+        category.is_income = is_income
         session.add(category)
         session.commit()
     return RedirectResponse("/settings", status_code=303)

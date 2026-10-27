@@ -21,6 +21,28 @@
     {% endif %}
 </div>
 
+<h2>This month</h2>
+<ul>
+    <li>Income: {{ format_money(total_income_cents) }}</li>
+    <li>Spent: {{ format_money(total_spent_cents) }}</li>
+    <li>
+        <strong>Net:
+        <span style="color: {{ '#2a7a2a' if net_cents >= 0 else '#b22222' }}">
+            {{ format_money(net_cents) }}
+        </span></strong>
+    </li>
+</ul>
+
+{% if incomes %}
+<h2>Income</h2>
+{% for income in incomes %}
+<div>
+    <strong>{{ income.category_name }}</strong>
+    - {{ format_money(income.received_cents) }}
+</div>
+{% endfor %}
+{% endif %}
+
 <h2>Accounts</h2>
 <ul>
 {% for account in accounts %}

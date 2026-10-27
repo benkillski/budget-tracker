@@ -97,3 +97,35 @@ def test_home_falls_back_to_current_month_when_params_invalid(client):
     response = client.get("/?year=2026&month=99")
     assert response.status_code == 200
     assert now.strftime("%B %Y") in response.text
+
+
+def test_home_shows_income_and_net(session, client):
+    account = Account(simplefin_account_id="acc-1", name="Checking", institution="Test Bank", balance_cents=0)
+    salary = Category(name="Salary", monthly_limit_cents=0, is_income=True)
+    groceries = Category(name="Groceries", monthly_limit_cents=100000)
+    session.add(account)
+    session.add(salary)
+    session.add(groceries)
+    session.commit()
+    session.refresh(account)
+    session.refresh(salary)
+    session.refresh(groceries)
+    session.add_all(
+        [
+            Transaction(account_id=account.id, posted_at=datetime(2026, 7, 1), payee="Paycheck",
+                        amount_cents=500000, category_id=salary.id),
+            Transaction(account_id=account.id, posted_at=datetime(2026, 7, 15), payee="Grocery store",
+                        amount_cents=-15000, category_id=groceries.id),
+        ]
+    )
+    session.commit()
+
+    response = client.get("/?year=2026&month=7")
+    assert response.status_code == 200
+    # Income section shows up with the paycheck
+    assert "Salary" in response.text
+    assert "$5,000.00" in response.text
+    # Spending total
+    assert "$150.00" in response.text
+    # Net = 5000 - 150 = 4850
+    assert "$4,850.00" in response.text
