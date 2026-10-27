@@ -49,14 +49,16 @@ def create_category(
 
 
 @router.post("/categories/{category_id}")
-def update_category_limit(
+def update_category(
     category_id: int,
+    name: str = Form(...),
     monthly_limit: str = Form(...),
     is_income: bool = Form(False),
     session: Session = Depends(get_session),
 ):
     category = session.get(Category, category_id)
     if category is not None:
+        category.name = name.strip()
         category.monthly_limit_cents = to_cents(Decimal(monthly_limit))
         category.is_income = is_income
         session.add(category)

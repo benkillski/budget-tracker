@@ -11,22 +11,22 @@
 
 <h2>Categories</h2>
 <table>
-<thead><tr><th>Name</th><th>Monthly limit</th><th>Income?</th><th></th></tr></thead>
+<thead><tr><th colspan="3">Name &middot; Monthly limit &middot; Income?</th><th></th></tr></thead>
 <tbody>
 {% for category in categories %}
 <tr>
-    <td>{{ category.name }}</td>
-    <td>
-        <form method="post" action="/settings/categories/{{ category.id }}" style="display:inline">
+    <td colspan="3">
+        <form method="post" action="/settings/categories/{{ category.id }}"
+              style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+            <input name="name" value="{{ category.name }}" required>
             <input name="monthly_limit" value="{{ "%.2f"|format(category.monthly_limit_cents / 100) }}" size="8">
-            <label style="margin-left:0.5rem">
+            <label>
                 <input type="checkbox" name="is_income" value="true" {% if category.is_income %}checked{% endif %}>
                 Income
             </label>
             <button type="submit">Update</button>
         </form>
     </td>
-    <td style="text-align:center">{{ "✓" if category.is_income else "" }}</td>
     <td>
         <form method="post" action="/settings/categories/{{ category.id }}/delete" style="display:inline"
               onsubmit="return confirm('Delete category &quot;{{ category.name }}&quot;? Transactions in it will become uncategorized. Any rules targeting it must be removed first.');">

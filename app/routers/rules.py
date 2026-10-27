@@ -45,6 +45,27 @@ def create_rule_from_transaction(
     return RedirectResponse("/rules", status_code=303)
 
 
+@router.post("/{rule_id}")
+def update_rule(
+    rule_id: int,
+    match_type: str = Form(...),
+    match_value: str = Form(...),
+    category_id: int = Form(...),
+    priority: int = Form(0),
+    session: Session = Depends(get_session),
+):
+    rule = session.get(Rule, rule_id)
+    if rule is None:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    rule.match_type = match_type
+    rule.match_value = match_value
+    rule.category_id = category_id
+    rule.priority = priority
+    session.add(rule)
+    session.commit()
+    return RedirectResponse("/rules", status_code=303)
+
+
 @router.post("/{rule_id}/delete")
 def delete_rule(rule_id: int, session: Session = Depends(get_session)):
     rule = session.get(Rule, rule_id)

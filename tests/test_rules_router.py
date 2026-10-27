@@ -89,3 +89,54 @@ def test_delete_rule_removes_it_and_clears_rule_applied_on_transactions(session,
 def test_delete_rule_returns_404_for_unknown_id(client):
     response = client.post("/rules/99999/delete", follow_redirects=False)
     assert response.status_code == 404
+
+
+def test_update_rule_changes_all_fields(session, client):
+    first_cat = Category(name="Dining", monthly_limit_cents=10000)
+    second_cat = Category(name="Groceries", monthly_limit_cents=50000)
+    session.add(first_cat)
+    session.add(second_cat)
+    session.commit()
+    session.refresh(first_cat)
+    session.refresh(second_cat)
+    rule = Rule(match_type="contains", match_value="CHIPOTLE", category_id=first_cat.id, priority=0)
+    session.add(rule)
+    session.commit()
+    session.refresh(rule)
+
+    response = client.post(
+        f"/rules/{rule.id}",
+        data={
+            "match_type": "regex",
+            "match_value": "^KROGER",
+            "category_id": str(second_cat.id),
+            "priority": "5",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    session.refresh(rule)
+    assert rule.match_type == "regex"
+    assert rule.match_value == "^KROGER"
+    assert rule.category_id == second_cat.id
+    assert rule.priority == 5
+
+
+def test_update_rule_returns_404_for_unknown_id(session, client):
+    category = Category(name="Dining", monthly_limit_cents=10000)
+    session.add(category)
+    session.commit()
+    session.refresh(category)
+
+    response = client.post(
+        "/rules/99999",
+        data={
+            "match_type": "contains",
+            "match_value": "FOO",
+            "category_id": str(category.id),
+            "priority": "0",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 404

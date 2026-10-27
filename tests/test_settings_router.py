@@ -26,13 +26,31 @@ def test_update_category_limit_changes_existing_category(session, client):
 
     response = client.post(
         f"/settings/categories/{category.id}",
-        data={"monthly_limit": "150.50"},
+        data={"name": "Dining", "monthly_limit": "150.50"},
         follow_redirects=False,
     )
     assert response.status_code == 303
 
     session.refresh(category)
     assert category.monthly_limit_cents == 15050
+
+
+def test_update_category_renames_it(session, client):
+    category = Category(name="Dining", monthly_limit_cents=10000)
+    session.add(category)
+    session.commit()
+    session.refresh(category)
+
+    response = client.post(
+        f"/settings/categories/{category.id}",
+        data={"name": "Dining Out", "monthly_limit": "100.00"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    session.refresh(category)
+    assert category.name == "Dining Out"
+    assert category.monthly_limit_cents == 10000
 
 
 def test_settings_page_shows_simplefin_not_configured_by_default(client, monkeypatch):
@@ -114,7 +132,7 @@ def test_update_category_toggles_is_income(session, client):
 
     response = client.post(
         f"/settings/categories/{category.id}",
-        data={"monthly_limit": "0", "is_income": "true"},
+        data={"name": category.name, "monthly_limit": "0", "is_income": "true"},
         follow_redirects=False,
     )
     assert response.status_code == 303
@@ -124,7 +142,7 @@ def test_update_category_toggles_is_income(session, client):
     # Omitting the checkbox (unchecked) flips it off.
     response = client.post(
         f"/settings/categories/{category.id}",
-        data={"monthly_limit": "0"},
+        data={"name": category.name, "monthly_limit": "0"},
         follow_redirects=False,
     )
     assert response.status_code == 303

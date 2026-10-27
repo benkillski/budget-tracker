@@ -2,14 +2,30 @@
 {% block content %}
 <h1>Rules</h1>
 <table>
-<thead><tr><th>Priority</th><th>Match</th><th>Value</th><th>Category</th><th></th></tr></thead>
+<thead><tr><th colspan="4">Priority &middot; Match &middot; Value &middot; Category</th><th></th><th></th></tr></thead>
 <tbody>
 {% for rule in rules %}
 <tr>
-    <td>{{ rule.priority }}</td>
-    <td>{{ rule.match_type }}</td>
-    <td>{{ rule.match_value }}</td>
-    <td>{{ (categories|selectattr("id", "equalto", rule.category_id)|first).name }}</td>
+    <td colspan="4">
+        <form method="post" action="/rules/{{ rule.id }}"
+              style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+            <input name="priority" type="number" value="{{ rule.priority }}" size="3" style="width:4em">
+            <select name="match_type">
+                <option value="contains" {% if rule.match_type == "contains" %}selected{% endif %}>Contains</option>
+                <option value="equals" {% if rule.match_type == "equals" %}selected{% endif %}>Equals</option>
+                <option value="regex" {% if rule.match_type == "regex" %}selected{% endif %}>Regex</option>
+            </select>
+            <input name="match_value" value="{{ rule.match_value }}" required>
+            <select name="category_id">
+                {% for category in categories %}
+                <option value="{{ category.id }}" {% if category.id == rule.category_id %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit">Update</button>
+        </form>
+    </td>
     <td>
         <form method="post" action="/rules/{{ rule.id }}/delete" style="display:inline"
               onsubmit="return confirm('Delete this rule? Transactions previously matched by it keep their category; only the rule itself is removed.');">
