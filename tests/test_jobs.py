@@ -28,7 +28,9 @@ def test_daily_sync_job_sends_alert_for_each_crossing(mock_client_class, mock_ru
 
     daily_sync_job(settings, engine)
 
-    mock_client_class.assert_called_once_with(settings.simplefin_access_url)
+    mock_client_class.assert_called_once_with(
+        settings.simplefin_access_url, timeout_seconds=settings.simplefin_timeout_seconds
+    )
     mock_run_sync.assert_called_once()
     mock_send_alert.assert_called_once()
     assert mock_send_alert.call_args[0][1] is crossing

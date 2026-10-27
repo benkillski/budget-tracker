@@ -28,14 +28,19 @@ class SimpleFINAccount:
 
 
 class SimpleFINClient:
-    def __init__(self, access_url: str, http_client: httpx.Client | None = None):
+    def __init__(
+        self,
+        access_url: str,
+        http_client: httpx.Client | None = None,
+        timeout_seconds: float = 120.0,
+    ):
         parts = urlsplit(access_url)
         netloc = parts.hostname or ""
         if parts.port:
             netloc = f"{netloc}:{parts.port}"
         self._base_url = urlunsplit((parts.scheme, netloc, parts.path, "", ""))
         self._auth = (parts.username or "", parts.password or "")
-        self._client = http_client or httpx.Client(timeout=30.0)
+        self._client = http_client or httpx.Client(timeout=timeout_seconds)
 
     def get_accounts(self, start_date: datetime | None = None) -> list[SimpleFINAccount]:
         params = {}

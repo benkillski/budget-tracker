@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     alert_threshold_pct: int = 100
     digest_frequency: str = "daily"  # "daily" | "weekly"
     sync_hour_utc: int = 11
+    simplefin_timeout_seconds: float = 120.0
 
 
 settings = Settings()

@@ -21,7 +21,10 @@ def _smtp_config(settings: Settings) -> SMTPConfig:
 
 
 def daily_sync_job(settings: Settings, engine) -> None:
-    client = SimpleFINClient(settings.simplefin_access_url)
+    client = SimpleFINClient(
+        settings.simplefin_access_url,
+        timeout_seconds=settings.simplefin_timeout_seconds,
+    )
     with Session(engine) as session:
         status = session.get(SyncStatus, 1) or SyncStatus(id=1)
         try:
