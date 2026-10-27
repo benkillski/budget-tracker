@@ -2,17 +2,26 @@
 {% block content %}
 <h1>Rules</h1>
 <table>
-<thead><tr><th colspan="5">Priority &middot; Source &middot; Match &middot; Value &middot; Category</th><th></th><th></th></tr></thead>
+<thead><tr><th colspan="6">Priority &middot; Account &middot; Source &middot; Match &middot; Value &middot; Category</th><th></th></tr></thead>
 <tbody>
 {% for rule in rules %}
 <tr>
-    <td colspan="5">
+    <td colspan="6">
         <form method="post" action="/rules/{{ rule.id }}"
               style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
             <input name="priority" type="number" value="{{ rule.priority }}" size="3" style="width:4em">
+            <select name="account_id">
+                <option value="">Any account</option>
+                {% for account in accounts %}
+                <option value="{{ account.id }}" {% if account.id == rule.account_id %}selected{% endif %}>
+                    {{ account.name }}
+                </option>
+                {% endfor %}
+            </select>
             <select name="source">
                 <option value="payee" {% if rule.source == "payee" %}selected{% endif %}>Payee</option>
                 <option value="description" {% if rule.source == "description" %}selected{% endif %}>Description</option>
+                <option value="memo" {% if rule.source == "memo" %}selected{% endif %}>Memo</option>
             </select>
             <select name="match_type">
                 <option value="contains" {% if rule.match_type == "contains" %}selected{% endif %}>Contains</option>
@@ -43,9 +52,16 @@
 
 <h2>New rule</h2>
 <form method="post" action="/rules">
+    <select name="account_id">
+        <option value="">Any account</option>
+        {% for account in accounts %}
+        <option value="{{ account.id }}">{{ account.name }}</option>
+        {% endfor %}
+    </select>
     <select name="source">
         <option value="payee">Payee</option>
         <option value="description">Description</option>
+        <option value="memo">Memo</option>
     </select>
     <select name="match_type">
         <option value="contains">Contains</option>

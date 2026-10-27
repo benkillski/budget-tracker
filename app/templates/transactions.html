@@ -34,7 +34,16 @@
 </form>
 
 <table>
-    <thead><tr><th>Date</th><th>Account</th><th>Payee</th><th>Amount</th><th>Category</th><th></th></tr></thead>
+    <thead><tr>
+        <th>Posted</th>
+        <th>Transacted</th>
+        <th>Account</th>
+        <th>Payee</th>
+        <th>Memo</th>
+        <th>Amount</th>
+        <th>Category</th>
+        <th></th>
+    </tr></thead>
     <tbody>
     {% for transaction in transactions %}
         {% include "partials/transaction_row.html" %}

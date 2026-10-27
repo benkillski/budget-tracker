@@ -10,14 +10,39 @@ def _rule(
     priority: int = 0,
     category_id: int = 1,
     source: str = "payee",
+    account_id: int | None = None,
 ) -> Rule:
     return Rule(
         source=source,
         match_type=match_type,
         match_value=match_value,
         category_id=category_id,
+        account_id=account_id,
         priority=priority,
     )
+
+
+def test_rule_matches_memo_when_source_is_memo():
+    rule = _rule("contains", "overdraft", source="memo")
+    assert apply_rules("Checking fee", [rule], memo="Overdraft protection used") is rule
+    assert apply_rules("Checking fee", [rule], memo="") is None
+
+
+def test_rule_scoped_to_account_skips_other_accounts():
+    rule = _rule("contains", "TRANSFER", account_id=42)
+    # Match on account 42
+    assert apply_rules("TRANSFER TO SAV", [rule], account_id=42) is rule
+    # Skipped on other accounts
+    assert apply_rules("TRANSFER TO SAV", [rule], account_id=7) is None
+    # And when no account_id is supplied
+    assert apply_rules("TRANSFER TO SAV", [rule]) is None
+
+
+def test_rule_without_account_scope_matches_any_account():
+    rule = _rule("contains", "TRANSFER")
+    assert apply_rules("TRANSFER TO SAV", [rule], account_id=1) is rule
+    assert apply_rules("TRANSFER TO SAV", [rule], account_id=999) is rule
+    assert apply_rules("TRANSFER TO SAV", [rule]) is rule
 
 
 def test_rule_matches_description_when_source_is_description():

@@ -10,8 +10,10 @@ import httpx
 class SimpleFINTransaction:
     id: str
     posted_at: datetime
+    transacted_at: datetime | None
     payee: str
     description: str
+    memo: str
     amount_cents: int
     pending: bool
 
@@ -57,11 +59,20 @@ def _parse_account(raw: dict) -> SimpleFINAccount:
 
 def _parse_transaction(raw: dict) -> SimpleFINTransaction:
     description = raw.get("description", "") or ""
+    memo = raw.get("memo", "") or ""
+    transacted_raw = raw.get("transacted_at")
+    transacted_at = (
+        datetime.fromtimestamp(transacted_raw, tz=timezone.utc).replace(tzinfo=None)
+        if transacted_raw
+        else None
+    )
     return SimpleFINTransaction(
         id=raw["id"],
         posted_at=datetime.fromtimestamp(raw["posted"], tz=timezone.utc).replace(tzinfo=None),
+        transacted_at=transacted_at,
         payee=raw.get("payee") or description,
         description=description,
+        memo=memo,
         amount_cents=_to_cents(raw["amount"]),
         pending=bool(raw.get("pending", False)),
     )

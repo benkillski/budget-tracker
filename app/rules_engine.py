@@ -3,18 +3,29 @@ import re
 from app.models import Rule
 
 
-def apply_rules(payee: str, rules: list[Rule], description: str = "") -> Rule | None:
+def apply_rules(
+    payee: str,
+    rules: list[Rule],
+    description: str = "",
+    memo: str = "",
+    account_id: int | None = None,
+) -> Rule | None:
     """Return the first rule (in list order) that matches, or None.
 
-    Each rule declares its own source (payee or description); the engine
-    picks the right field to match against per rule.
+    Each rule declares its own source (payee, description, memo); the
+    engine picks the right field to match per rule. A rule may also pin
+    itself to a specific account via rule.account_id — when set, the
+    rule is skipped for transactions on other accounts.
 
     Callers must pass rules pre-sorted ascending by priority (lower
     number = checked first) — e.g. `select(Rule).order_by(Rule.priority)`.
     """
+    sources = {"payee": payee, "description": description, "memo": memo}
     for rule in rules:
-        value = description if rule.source == "description" else payee
-        if _matches(value or "", rule):
+        if rule.account_id is not None and rule.account_id != account_id:
+            continue
+        value = sources.get(rule.source, payee) or ""
+        if _matches(value, rule):
             return rule
     return None
 

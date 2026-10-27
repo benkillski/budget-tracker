@@ -25,10 +25,11 @@ class Category(SQLModel, table=True):
 
 class Rule(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    source: str = Field(default="payee")  # "payee" | "description"
+    source: str = Field(default="payee")  # "payee" | "description" | "memo"
     match_type: str  # "contains" | "equals" | "regex"
     match_value: str
     category_id: int = Field(foreign_key="category.id")
+    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
     priority: int = Field(default=0, index=True)
 
 
@@ -38,8 +39,10 @@ class Transaction(SQLModel, table=True):
     csv_dedup_hash: Optional[str] = Field(default=None, unique=True, index=True)
     account_id: int = Field(foreign_key="account.id", index=True)
     posted_at: NaiveDatetime
+    transacted_at: Optional[NaiveDatetime] = None
     payee: str
     description: Optional[str] = None
+    memo: Optional[str] = None
     amount_cents: int
     pending: bool = Field(default=False)
     category_id: Optional[int] = Field(default=None, foreign_key="category.id", index=True)

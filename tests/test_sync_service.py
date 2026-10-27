@@ -34,8 +34,9 @@ def test_run_sync_inserts_new_transactions_and_categorizes_them(session):
         org_name="Test Bank",
         balance_cents=50000,
         transactions=[
-            SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), payee="KROGER #1",
-                                  description="KROGER #1 CINCINNATI OH", amount_cents=-2500, pending=False),
+            SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), transacted_at=None,
+                                  payee="KROGER #1", description="KROGER #1 CINCINNATI OH", memo="",
+                                  amount_cents=-2500, pending=False),
         ],
     )
     client = FakeSimpleFINClient([fake_account])
@@ -55,8 +56,9 @@ def test_run_sync_does_not_duplicate_existing_transactions(session):
     fake_account = SimpleFINAccount(
         id="acc-1", name="Checking", org_name="Test Bank", balance_cents=50000,
         transactions=[
-            SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), payee="KROGER #1",
-                                  description="", amount_cents=-2500, pending=False),
+            SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), transacted_at=None,
+                                  payee="KROGER #1", description="", memo="",
+                                  amount_cents=-2500, pending=False),
         ],
     )
     client = FakeSimpleFINClient([fake_account])
@@ -73,8 +75,9 @@ def test_run_sync_reports_newly_crossed_thresholds_once(session):
     fake_account = SimpleFINAccount(
         id="acc-1", name="Checking", org_name="Test Bank", balance_cents=50000,
         transactions=[
-            SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), payee="KROGER #1",
-                                  description="", amount_cents=-3500, pending=False),
+            SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), transacted_at=None,
+                                  payee="KROGER #1", description="", memo="",
+                                  amount_cents=-3500, pending=False),
         ],
     )
     client = FakeSimpleFINClient([fake_account])
@@ -112,8 +115,9 @@ def test_run_sync_stores_description_on_new_transaction(session):
     fake_account = SimpleFINAccount(
         id="acc-1", name="Checking", org_name="Test Bank", balance_cents=50000,
         transactions=[
-            SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), payee="KROGER #1",
-                                  description="KROGER #1 CINCINNATI OH", amount_cents=-2500, pending=False),
+            SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), transacted_at=None,
+                                  payee="KROGER #1", description="KROGER #1 CINCINNATI OH", memo="",
+                                  amount_cents=-2500, pending=False),
         ],
     )
     client = FakeSimpleFINClient([fake_account])
@@ -131,8 +135,9 @@ def test_run_sync_backfills_description_on_existing_transaction(session):
     fake_account = SimpleFINAccount(
         id="acc-1", name="Checking", org_name="Test Bank", balance_cents=50000,
         transactions=[
-            SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), payee="KROGER #1",
-                                  description="", amount_cents=-2500, pending=False),
+            SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), transacted_at=None,
+                                  payee="KROGER #1", description="", memo="",
+                                  amount_cents=-2500, pending=False),
         ],
     )
     client = FakeSimpleFINClient([fake_account])
@@ -144,8 +149,9 @@ def test_run_sync_backfills_description_on_existing_transaction(session):
     assert txn.description is None
 
     fake_account.transactions = [
-        SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), payee="KROGER #1",
-                              description="KROGER #1 CINCINNATI OH", amount_cents=-2500, pending=False),
+        SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), transacted_at=None,
+                              payee="KROGER #1", description="KROGER #1 CINCINNATI OH", memo="",
+                              amount_cents=-2500, pending=False),
     ]
     run_sync(session, client, warning_pct=80, alert_pct=100)
 

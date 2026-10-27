@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models import Category, Rule, Transaction
+from app.models import Account, Category, Rule, Transaction
 
 router = APIRouter(prefix="/rules")
 templates = Jinja2Templates(directory="app/templates")
@@ -13,8 +13,22 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("")
 def list_rules(request: Request, session: Session = Depends(get_session)):
     rules = session.exec(select(Rule).order_by(Rule.priority)).all()
-    categories = session.exec(select(Category)).all()
-    return templates.TemplateResponse(request, "rules.html", {"rules": rules, "categories": categories})
+    categories = session.exec(select(Category).order_by(Category.name)).all()
+    accounts = session.exec(select(Account).order_by(Account.name)).all()
+    return templates.TemplateResponse(
+        request,
+        "rules.html",
+        {"rules": rules, "categories": categories, "accounts": accounts},
+    )
+
+
+def _parse_optional_int(raw: str) -> int | None:
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return None
 
 
 @router.post("")
@@ -24,6 +38,7 @@ def create_rule(
     category_id: int = Form(...),
     priority: int = Form(0),
     source: str = Form("payee"),
+    account_id: str = Form(""),
     session: Session = Depends(get_session),
 ):
     session.add(
@@ -32,6 +47,7 @@ def create_rule(
             match_type=match_type,
             match_value=match_value,
             category_id=category_id,
+            account_id=_parse_optional_int(account_id),
             priority=priority,
         )
     )
@@ -62,6 +78,7 @@ def update_rule(
     category_id: int = Form(...),
     priority: int = Form(0),
     source: str = Form("payee"),
+    account_id: str = Form(""),
     session: Session = Depends(get_session),
 ):
     rule = session.get(Rule, rule_id)
@@ -71,6 +88,7 @@ def update_rule(
     rule.match_type = match_type
     rule.match_value = match_value
     rule.category_id = category_id
+    rule.account_id = _parse_optional_int(account_id)
     rule.priority = priority
     session.add(rule)
     session.commit()

@@ -61,14 +61,22 @@ def run_sync(session: Session, client: SimpleFINClient, warning_pct: int, alert_
                 session.add(existing)
                 continue
 
-            matched_rule = apply_rules(sf_txn.payee, rules, description=sf_txn.description or "")
+            matched_rule = apply_rules(
+                sf_txn.payee,
+                rules,
+                description=sf_txn.description or "",
+                memo=sf_txn.memo or "",
+                account_id=account.id,
+            )
             session.add(
                 Transaction(
                     simplefin_transaction_id=sf_txn.id,
                     account_id=account.id,
                     posted_at=sf_txn.posted_at,
+                    transacted_at=sf_txn.transacted_at,
                     payee=sf_txn.payee,
                     description=sf_txn.description or None,
+                    memo=sf_txn.memo or None,
                     amount_cents=sf_txn.amount_cents,
                     pending=sf_txn.pending,
                     category_id=matched_rule.category_id if matched_rule else None,
