@@ -51,3 +51,49 @@ def test_home_shows_last_synced_time_on_success(session, client):
     response = client.get("/")
     assert response.status_code == 200
     assert "Last synced" in response.text
+
+
+def test_home_filters_to_requested_month(session, client):
+    account = Account(simplefin_account_id="acc-1", name="Checking", institution="Test Bank", balance_cents=0)
+    category = Category(name="Groceries", monthly_limit_cents=30000)
+    session.add(account)
+    session.add(category)
+    session.commit()
+    session.refresh(account)
+    session.refresh(category)
+    session.add(
+        Transaction(account_id=account.id, posted_at=datetime(2026, 7, 15), payee="July Store",
+                    amount_cents=-1500, category_id=category.id)
+    )
+    session.add(
+        Transaction(account_id=account.id, posted_at=datetime(2026, 8, 15), payee="August Store",
+                    amount_cents=-7777, category_id=category.id)
+    )
+    session.commit()
+
+    july_response = client.get("/?year=2026&month=7")
+    assert july_response.status_code == 200
+    assert "July 2026" in july_response.text
+    assert "$15.00" in july_response.text
+    assert "$77.77" not in july_response.text
+
+    august_response = client.get("/?year=2026&month=8")
+    assert "August 2026" in august_response.text
+    assert "$77.77" in august_response.text
+    assert "Today" in august_response.text  # non-current month shows the Today link
+
+
+def test_home_month_nav_rolls_year_at_december(client):
+    response = client.get("/?year=2026&month=12")
+    assert response.status_code == 200
+    # Next link rolls to Jan 2027
+    assert "year=2027&month=1" in response.text
+    # Prev link stays in 2026
+    assert "year=2026&month=11" in response.text
+
+
+def test_home_falls_back_to_current_month_when_params_invalid(client):
+    now = utc_now()
+    response = client.get("/?year=2026&month=99")
+    assert response.status_code == 200
+    assert now.strftime("%B %Y") in response.text

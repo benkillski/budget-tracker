@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -12,12 +14,29 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _shift_month(year: int, month: int, delta: int) -> tuple[int, int]:
+    index = (year * 12 + (month - 1)) + delta
+    return index // 12, (index % 12) + 1
+
+
 @router.get("/")
-def home(request: Request, session: Session = Depends(get_session)):
+def home(
+    request: Request,
+    year: int | None = None,
+    month: int | None = None,
+    session: Session = Depends(get_session),
+):
     now = utc_now()
-    periods = compute_budget_period(session, now.year, now.month)
+    if year is None or month is None or not (1 <= month <= 12):
+        year, month = now.year, now.month
+
+    periods = compute_budget_period(session, year, month)
     accounts = session.exec(select(Account)).all()
     sync_status = session.get(SyncStatus, 1)
+
+    prev_year, prev_month = _shift_month(year, month, -1)
+    next_year, next_month = _shift_month(year, month, +1)
+
     return templates.TemplateResponse(
         request,
         "home.html",
@@ -25,7 +44,12 @@ def home(request: Request, session: Session = Depends(get_session)):
             "periods": periods,
             "accounts": accounts,
             "format_money": format_money,
-            "month_label": now.strftime("%B %Y"),
+            "month_label": date(year, month, 1).strftime("%B %Y"),
+            "prev_year": prev_year,
+            "prev_month": prev_month,
+            "next_year": next_year,
+            "next_month": next_month,
+            "is_current_month": (year == now.year and month == now.month),
             "sync_status": sync_status,
         },
     )

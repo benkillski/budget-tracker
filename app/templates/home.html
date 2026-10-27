@@ -12,7 +12,14 @@
 <p style="color:#666">Last synced {{ sync_status.last_synced_at.strftime("%Y-%m-%d %H:%M") }} UTC</p>
 {% endif %}
 
-<h1>{{ month_label }}</h1>
+<div style="display:flex;align-items:center;gap:1rem;margin:1rem 0">
+    <a href="/?year={{ prev_year }}&month={{ prev_month }}">&larr; Prev</a>
+    <h1 style="margin:0">{{ month_label }}</h1>
+    <a href="/?year={{ next_year }}&month={{ next_month }}">Next &rarr;</a>
+    {% if not is_current_month %}
+    <a href="/" style="margin-left:auto">Today</a>
+    {% endif %}
+</div>
 
 <h2>Accounts</h2>
 <ul>
