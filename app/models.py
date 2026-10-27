@@ -37,6 +37,7 @@ class Transaction(SQLModel, table=True):
     account_id: int = Field(foreign_key="account.id", index=True)
     posted_at: NaiveDatetime
     payee: str
+    description: Optional[str] = None
     amount_cents: int
     pending: bool = Field(default=False)
     category_id: Optional[int] = Field(default=None, foreign_key="category.id", index=True)

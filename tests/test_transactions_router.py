@@ -69,3 +69,36 @@ def test_set_category_persists_and_returns_updated_row(session, client):
 def test_set_category_returns_404_for_unknown_transaction(client):
     response = client.post("/transactions/99999/category", data={"category_id": ""})
     assert response.status_code == 404
+
+
+def test_list_transactions_renders_description_when_distinct_from_payee(session, client):
+    account = Account(simplefin_account_id="acc-1", name="Checking", institution="Test Bank")
+    session.add(account)
+    session.commit()
+    session.refresh(account)
+    session.add(
+        Transaction(
+            account_id=account.id,
+            posted_at=datetime(2026, 9, 1),
+            payee="Kroger",
+            description="KROGER #123 CINCINNATI OH",
+            amount_cents=-1000,
+        )
+    )
+    session.add(
+        Transaction(
+            account_id=account.id,
+            posted_at=datetime(2026, 9, 2),
+            payee="Amazon",
+            description="Amazon",
+            amount_cents=-500,
+        )
+    )
+    session.commit()
+
+    response = client.get("/transactions")
+
+    assert response.status_code == 200
+    assert "KROGER #123 CINCINNATI OH" in response.text
+    # When description equals payee, the extra line is suppressed.
+    assert response.text.count("Amazon") == 1

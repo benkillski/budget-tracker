@@ -56,6 +56,8 @@ def run_sync(session: Session, client: SimpleFINClient, warning_pct: int, alert_
             ).first()
             if existing is not None:
                 existing.pending = sf_txn.pending
+                if not existing.description and sf_txn.description:
+                    existing.description = sf_txn.description
                 session.add(existing)
                 continue
 
@@ -66,6 +68,7 @@ def run_sync(session: Session, client: SimpleFINClient, warning_pct: int, alert_
                     account_id=account.id,
                     posted_at=sf_txn.posted_at,
                     payee=sf_txn.payee,
+                    description=sf_txn.description or None,
                     amount_cents=sf_txn.amount_cents,
                     pending=sf_txn.pending,
                     category_id=matched_rule.category_id if matched_rule else None,

@@ -19,6 +19,7 @@ FIXTURE_RESPONSE = {
                     "id": "txn-1",
                     "posted": 1757000000,
                     "payee": "KROGER #123",
+                    "description": "KROGER #123 CINCINNATI OH",
                     "amount": "-25.99",
                     "pending": False,
                 },
@@ -56,10 +57,12 @@ def test_get_accounts_parses_accounts_and_transactions():
     first, second = account.transactions
     assert first.id == "txn-1"
     assert first.payee == "KROGER #123"
+    assert first.description == "KROGER #123 CINCINNATI OH"
     assert first.amount_cents == -2599
     assert first.pending is False
 
     assert second.payee == "Pending charge"
+    assert second.description == "Pending charge"
     assert second.pending is True
 
 

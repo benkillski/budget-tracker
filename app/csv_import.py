@@ -16,6 +16,7 @@ from app.rules_engine import apply_rules
 class RawTransaction:
     posted_at: datetime
     payee: str
+    description: str
     amount_cents: int
 
 
@@ -37,7 +38,15 @@ def parse_csv(file_bytes: bytes) -> list[RawTransaction]:
             amount_cents = to_cents(Decimal(row["Amount"].strip()))
         except (ValueError, InvalidOperation) as exc:
             raise CSVImportError(f"Row {line_number}: {exc}") from exc
-        rows.append(RawTransaction(posted_at=posted_at, payee=row["Description"].strip(), amount_cents=amount_cents))
+        description = row["Description"].strip()
+        rows.append(
+            RawTransaction(
+                posted_at=posted_at,
+                payee=description,
+                description=description,
+                amount_cents=amount_cents,
+            )
+        )
     return rows
 
 
@@ -60,6 +69,7 @@ def import_csv_transactions(session: Session, account_id: int, rows: list[RawTra
                 account_id=account_id,
                 posted_at=raw.posted_at,
                 payee=raw.payee,
+                description=raw.description or None,
                 amount_cents=raw.amount_cents,
                 category_id=matched_rule.category_id if matched_rule else None,
                 rule_applied_id=matched_rule.id if matched_rule else None,

@@ -1,6 +1,11 @@
 <tr id="txn-{{ transaction.id }}">
     <td>{{ transaction.posted_at.strftime("%Y-%m-%d") }}</td>
-    <td>{{ transaction.payee }}</td>
+    <td>
+        {{ transaction.payee }}
+        {% if transaction.description and transaction.description != transaction.payee %}
+        <br><small style="color:#666">{{ transaction.description }}</small>
+        {% endif %}
+    </td>
     <td>{{ format_money(transaction.amount_cents) }}</td>
     <td>
         <select name="category_id"

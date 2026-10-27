@@ -11,6 +11,7 @@ class SimpleFINTransaction:
     id: str
     posted_at: datetime
     payee: str
+    description: str
     amount_cents: int
     pending: bool
 
@@ -55,10 +56,12 @@ def _parse_account(raw: dict) -> SimpleFINAccount:
 
 
 def _parse_transaction(raw: dict) -> SimpleFINTransaction:
+    description = raw.get("description", "") or ""
     return SimpleFINTransaction(
         id=raw["id"],
         posted_at=datetime.fromtimestamp(raw["posted"], tz=timezone.utc).replace(tzinfo=None),
-        payee=raw.get("payee") or raw.get("description", ""),
+        payee=raw.get("payee") or description,
+        description=description,
         amount_cents=_to_cents(raw["amount"]),
         pending=bool(raw.get("pending", False)),
     )
