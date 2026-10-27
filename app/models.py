@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from pydantic import NaiveDatetime
 from sqlmodel import Field, SQLModel
 
 
@@ -11,7 +12,7 @@ class Account(SQLModel, table=True):
     institution: str
     account_type: str = Field(default="unknown")
     balance_cents: int = Field(default=0)
-    balance_date: Optional[datetime] = None
+    balance_date: Optional[NaiveDatetime] = None
 
 
 class Category(SQLModel, table=True):
@@ -34,7 +35,7 @@ class Transaction(SQLModel, table=True):
     simplefin_transaction_id: Optional[str] = Field(default=None, unique=True, index=True)
     csv_dedup_hash: Optional[str] = Field(default=None, unique=True, index=True)
     account_id: int = Field(foreign_key="account.id", index=True)
-    posted_at: datetime
+    posted_at: NaiveDatetime
     payee: str
     amount_cents: int
     pending: bool = Field(default=False)
@@ -49,13 +50,13 @@ class AlertLog(SQLModel, table=True):
     year: int
     month: int
     threshold_pct: int
-    sent_at: datetime
+    sent_at: NaiveDatetime
 
 
 class SyncStatus(SQLModel, table=True):
     """Singleton row (id=1) tracking the outcome of the last sync attempt."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    last_synced_at: Optional[datetime] = None
+    last_synced_at: Optional[NaiveDatetime] = None
     last_sync_ok: bool = Field(default=True)
     last_error: Optional[str] = None
