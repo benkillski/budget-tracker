@@ -72,10 +72,13 @@ def test_run_sync_does_not_duplicate_existing_transactions(session):
 
 def test_run_sync_reports_newly_crossed_thresholds_once(session):
     category = _seed_category_and_rule(session)  # limit is 3000 cents ($30)
+    # Use a date in the current budget period so this test is month-agnostic
+    # (compute_budget_period scopes spending to utc_now()'s year/month).
+    posted = utc_now().replace(day=1, hour=12, minute=0, second=0, microsecond=0)
     fake_account = SimpleFINAccount(
         id="acc-1", name="Checking", org_name="Test Bank", balance_cents=50000,
         transactions=[
-            SimpleFINTransaction(id="txn-1", posted_at=datetime(2026, 9, 5), transacted_at=None,
+            SimpleFINTransaction(id="txn-1", posted_at=posted, transacted_at=None,
                                   payee="KROGER #1", description="", memo="",
                                   amount_cents=-3500, pending=False),
         ],
