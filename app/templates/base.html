@@ -34,12 +34,16 @@
         .inline-form select,
         .inline-form button {
             margin: 0;
-            width: auto;
         }
+        .inline-form input:not([type="checkbox"]):not([type="radio"]),
+        .inline-form select,
+        .inline-form button { width: auto; }
         .inline-form input[type="number"] { max-width: 5rem; }
         .inline-form input[type="text"],
         .inline-form input:not([type]) { max-width: 14rem; }
+        .inline-form input[type="checkbox"] { width: 1.1rem; height: 1.1rem; vertical-align: middle; }
         .inline-form button { padding: 0.35rem 0.75rem; font-size: 0.875rem; }
+        .inline-form label { display: inline-flex; align-items: center; gap: 0.35rem; margin: 0; }
 
         /* Flash banners */
         .flash { padding: 0.75rem 1rem; border-radius: var(--pico-border-radius); margin: 1rem 0; }
