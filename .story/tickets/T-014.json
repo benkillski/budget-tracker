@@ -1,0 +1,13 @@
+{
+  "blockedBy": [],
+  "completedDate": null,
+  "createdDate": "2026-10-28",
+  "description": "Fixed recurring bills (Rent, Auto Insurance, Renters Insurance, Phone, Internet) hit 100% of their limit every month as part of normal operation — but the dashboard currently renders that in red/alarm colors as if it were an overage. Add an `is_fixed: bool` flag on Category (mirroring is_income). Semantics for fixed categories: spent==limit (±small tolerance) renders a muted \"paid\" state (green or neutral, not red); spent<limit renders muted \"pending\" (bill hasn't posted yet); spent>limit renders red \"surprise\" (genuinely interesting — rent went up). Alert emails: skip the 80% and 100% thresholds for fixed categories (they'd fire every month as the bill posts — pure noise) but keep the overage alert for actual surprises.\n\nScope:\n1. Schema: ALTER TABLE category ADD COLUMN is_fixed BOOLEAN NOT NULL DEFAULT 0\n2. Settings: Fixed checkbox next to the existing Income checkbox\n3. Dashboard: three visual states (paid / pending / surprise) for fixed categories instead of the standard ok/warn/over bars\n4. Alerts: skip 80% and 100% thresholds in sync_service's crossing logic when is_fixed; keep >100% as \"surprise\" alert\n5. Tests\n6. Migration note in deploy",
+  "displayId": "T-014",
+  "id": "T-014",
+  "order": 140,
+  "phase": "post-mvp",
+  "status": "inprogress",
+  "title": "Fixed-cost category kind (paid vs over for recurring bills)",
+  "type": "feature"
+}

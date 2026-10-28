@@ -20,6 +20,14 @@
         .bar-fill.ok { background: #22c55e; }
         .bar-fill.warn { background: #f59e0b; }
         .bar-fill.over { background: #ef4444; }
+        /* Fixed-category states */
+        .bar-fill.pending { background: #94a3b8; }   /* slate — bill not yet posted */
+        .bar-fill.paid    { background: #22c55e; }   /* same green as "ok" — expected and done */
+        .bar-fill.surprise { background: #ef4444; }  /* same red — unexpected overage */
+        .state-tag { font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 0.25rem; margin-left: 0.4rem; vertical-align: middle; }
+        .state-tag.pending  { background: #475569; color: #e2e8f0; }
+        .state-tag.paid     { background: #16a34a; color: #ecfdf5; }
+        .state-tag.surprise { background: #dc2626; color: #fef2f2; }
 
         /* Row-level inline forms (per-category edit, per-rule edit, filter bar).
            Overrides Pico's default full-width form controls so they sit on one row. */

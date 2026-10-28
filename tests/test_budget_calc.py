@@ -75,6 +75,38 @@ def test_budget_period_excludes_income_categories(session):
     assert [r.category_name for r in results] == ["Groceries"]
 
 
+def test_fixed_category_states(session):
+    account = _seed_account(session)
+    rent = Category(name="Rent", monthly_limit_cents=140000, is_fixed=True)
+    insurance = Category(name="Auto Insurance", monthly_limit_cents=24000, is_fixed=True)
+    phone = Category(name="Phone", monthly_limit_cents=10000, is_fixed=True)
+    session.add(rent)
+    session.add(insurance)
+    session.add(phone)
+    session.commit()
+    session.refresh(rent)
+    session.refresh(insurance)
+    session.refresh(phone)
+
+    # Rent: not yet posted this month → pending
+    # Auto Insurance: posted at exactly $240 → paid
+    session.add(
+        Transaction(account_id=account.id, posted_at=datetime(2026, 10, 1), payee="State Farm",
+                    amount_cents=-24000, category_id=insurance.id)
+    )
+    # Phone: billed at $108 (bill went up — surprise)
+    session.add(
+        Transaction(account_id=account.id, posted_at=datetime(2026, 10, 1), payee="T-Mobile",
+                    amount_cents=-10800, category_id=phone.id)
+    )
+    session.commit()
+
+    results = {r.category_name: r for r in compute_budget_period(session, 2026, 10)}
+    assert results["Rent"].fixed_state == "pending"
+    assert results["Auto Insurance"].fixed_state == "paid"
+    assert results["Phone"].fixed_state == "surprise"
+
+
 def test_parent_rolls_up_children_spending(session):
     account = _seed_account(session)
     food = Category(name="Food", monthly_limit_cents=60000)

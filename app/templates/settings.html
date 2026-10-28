@@ -42,6 +42,10 @@
                     <input type="checkbox" name="is_income" value="true" {% if category.is_income %}checked{% endif %}>
                     Income
                 </label>
+                <label>
+                    <input type="checkbox" name="is_fixed" value="true" {% if category.is_fixed %}checked{% endif %}>
+                    Fixed
+                </label>
                 <select name="parent_id">
                     <option value="">No parent</option>
                     {% for parent in potential_parents %}
@@ -72,6 +76,7 @@
         <input name="name" placeholder="e.g. Groceries" required>
         <input name="monthly_limit" placeholder="0.00" value="0.00" title="Monthly limit">
         <label><input type="checkbox" name="is_income" value="true"> Income</label>
+        <label><input type="checkbox" name="is_fixed" value="true"> Fixed</label>
         <select name="parent_id">
             <option value="">No parent (top-level)</option>
             {% for parent in potential_parents %}
@@ -87,8 +92,14 @@
     </small>
     <br>
     <small class="muted">
-        Income categories sum positive (incoming) amounts and show up in the Income section of the dashboard.
+        <strong>Income</strong> categories sum positive (incoming) amounts and show up in the Income section of the dashboard.
         Regular categories sum negative (spending) amounts.
+    </small>
+    <br>
+    <small class="muted">
+        <strong>Fixed</strong> categories are predictable monthly bills (rent, insurance). They render as "pending" before
+        the bill posts, "paid" when at the expected amount, and "surprise" only if the actual bill exceeds the limit
+        by more than 5%. 80% / 100% alert emails are suppressed; only an unexpected overage alerts.
     </small>
 </article>
 {% endblock %}

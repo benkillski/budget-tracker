@@ -8,6 +8,9 @@ from sqlmodel import Session, func, select
 from app.models import Category, Transaction
 
 
+FIXED_SURPRISE_PCT = 105  # fixed categories only "alert" when spent exceeds limit by >5%
+
+
 @dataclass
 class CategorySpend:
     category_id: int
@@ -16,6 +19,7 @@ class CategorySpend:
     spent_cents: int
     parent_id: Optional[int] = None
     rolled_up_spent_cents: int = 0  # own spent + sum of children's spent
+    is_fixed: bool = False
 
     @property
     def remaining_cents(self) -> int:
@@ -30,6 +34,18 @@ class CategorySpend:
     @property
     def is_parent(self) -> bool:
         return self.rolled_up_spent_cents != self.spent_cents
+
+    @property
+    def fixed_state(self) -> str:
+        """For fixed categories: pending (not yet posted), paid (at or near limit),
+        or surprise (meaningfully over limit). Undefined for non-fixed categories."""
+        if not self.is_fixed or self.limit_cents <= 0:
+            return "n/a"
+        if self.pct_used > FIXED_SURPRISE_PCT:
+            return "surprise"
+        if self.pct_used >= 95:
+            return "paid"
+        return "pending"
 
 
 def _month_bounds(year: int, month: int) -> tuple[datetime, datetime]:
@@ -66,6 +82,7 @@ def compute_budget_period(session: Session, year: int, month: int) -> list[Categ
                 limit_cents=category.monthly_limit_cents,
                 spent_cents=spent_by_category.get(category.id, 0),
                 rolled_up_spent_cents=spent_by_category.get(category.id, 0),
+                is_fixed=category.is_fixed,
             )
         )
     # Roll children's spend up into their parents.

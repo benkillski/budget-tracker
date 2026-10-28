@@ -113,6 +113,52 @@ def test_run_sync_reports_newly_crossed_thresholds_once(session):
     assert second.newly_crossed == []
 
 
+def test_fixed_category_skips_80_and_100_pct_but_fires_on_surprise(session):
+    # A fixed category gets 80%/100% thresholds suppressed (noise every month)
+    # but still fires at >105% as a "surprise" (bill unexpectedly went up).
+    rent = Category(name="Rent", monthly_limit_cents=100000, is_fixed=True)
+    session.add(rent)
+    session.commit()
+    session.refresh(rent)
+    account = Account(simplefin_account_id="acc-1", name="Checking", institution="Test Bank", balance_cents=0)
+    session.add(account)
+    session.commit()
+    session.refresh(account)
+
+    # Spent exactly 100% — on a non-fixed category this would alert; on fixed, no alert.
+    exact_payment = SimpleFINAccount(
+        id="acc-1", name="Checking", org_name="Test Bank", balance_cents=0,
+        transactions=[
+            SimpleFINTransaction(id="rent-exact", posted_at=utc_now().replace(day=1, hour=12),
+                                 transacted_at=None, payee="LANDLORD",
+                                 description="", memo="", amount_cents=-100000, pending=False),
+        ],
+    )
+    client = FakeSimpleFINClient([exact_payment])
+    # Need a rule to auto-categorize, else the transaction goes uncategorized and
+    # won't count toward Rent's spent total.
+    session.add(Rule(match_type="contains", match_value="LANDLORD", category_id=rent.id, priority=0))
+    session.commit()
+
+    result = run_sync(session, client, warning_pct=80, alert_pct=100)
+    assert result.newly_crossed == []  # no alerts at 100% for a fixed category
+
+    # Now the landlord raises rent — $1,060 bill (106% of limit) → surprise.
+    surprise_payment = SimpleFINAccount(
+        id="acc-1", name="Checking", org_name="Test Bank", balance_cents=0,
+        transactions=[
+            SimpleFINTransaction(id="rent-surprise", posted_at=utc_now().replace(day=2, hour=12),
+                                 transacted_at=None, payee="LANDLORD",
+                                 description="", memo="", amount_cents=-6000, pending=False),
+        ],
+    )
+    client = FakeSimpleFINClient([surprise_payment])
+    result = run_sync(session, client, warning_pct=80, alert_pct=100)
+    crossings = [c for c in result.newly_crossed if c.category_name == "Rent"]
+    assert len(crossings) == 1
+    assert crossings[0].threshold_pct == 105
+
+
 def test_run_sync_stores_description_on_new_transaction(session):
     _seed_category_and_rule(session)
     fake_account = SimpleFINAccount(
