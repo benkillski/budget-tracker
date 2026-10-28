@@ -2,88 +2,94 @@
 {% block content %}
 <h1>Settings</h1>
 
-<h2>SimpleFIN connection</h2>
-<p>{{ "Configured" if simplefin_configured else "Not configured (set SIMPLEFIN_ACCESS_URL in .env and redeploy)" }}</p>
+<article>
+    <header><strong>SimpleFIN connection</strong></header>
+    <p>{{ "Configured" if simplefin_configured else "Not configured (set SIMPLEFIN_ACCESS_URL in .env and redeploy)" }}</p>
 
-{% if sync_result == "ok" %}
-<p style="background:#d4edda;padding:0.5rem;border-radius:4px">Sync complete.</p>
-{% elif sync_result == "error" %}
-<p style="background:#f8d7da;padding:0.5rem;border-radius:4px">
-    Sync failed: {{ sync_message or "unknown error" }}
-</p>
-{% endif %}
+    {% if sync_result == "ok" %}
+    <p class="flash ok">Sync complete.</p>
+    {% elif sync_result == "error" %}
+    <p class="flash error">Sync failed: {{ sync_message or "unknown error" }}</p>
+    {% endif %}
 
-{% if simplefin_configured %}
-<form method="post" action="/settings/sync-now" style="margin:0.5rem 0"
-      onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Syncing...';">
-    <button type="submit">Sync now</button>
-    <small style="color:#666">Triggers a SimpleFIN pull immediately. May take up to {{ 120 }} seconds.</small>
-</form>
-{% endif %}
+    {% if simplefin_configured %}
+    <form method="post" action="/settings/sync-now" class="inline-form"
+          onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Syncing...';">
+        <button type="submit">Sync now</button>
+        <small class="muted">Triggers a SimpleFIN pull immediately. May take up to 120 seconds.</small>
+    </form>
+    {% endif %}
+</article>
 
-<h2>Notifications</h2>
-<p>Warning threshold: {{ warning_threshold_pct }}% &middot; Alert threshold: {{ alert_threshold_pct }}% &middot; Digest: {{ digest_frequency }}</p>
-<p><em>Edit these via the .env file and redeploy.</em></p>
+<article>
+    <header><strong>Notifications</strong></header>
+    <p>Warning threshold: {{ warning_threshold_pct }}% &middot; Alert threshold: {{ alert_threshold_pct }}% &middot; Digest: {{ digest_frequency }}</p>
+    <small class="muted">Edit these via the .env file and redeploy.</small>
+</article>
 
-<h2>Categories</h2>
-<table>
-<thead><tr><th colspan="4">Name &middot; Monthly limit &middot; Income? &middot; Parent</th><th></th></tr></thead>
-<tbody>
-{% for category in categories %}
-<tr>
-    <td colspan="4">
-        <form method="post" action="/settings/categories/{{ category.id }}"
-              style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
-            <input name="name" value="{{ category.name }}" required>
-            <input name="monthly_limit" value="{{ "%.2f"|format(category.monthly_limit_cents / 100) }}" size="8">
-            <label>
-                <input type="checkbox" name="is_income" value="true" {% if category.is_income %}checked{% endif %}>
-                Income
-            </label>
-            <select name="parent_id">
-                <option value="">No parent</option>
-                {% for parent in potential_parents %}
-                    {% if parent.id != category.id %}
-                    <option value="{{ parent.id }}" {% if parent.id == category.parent_id %}selected{% endif %}>
-                        under {{ parent.name }}
-                    </option>
-                    {% endif %}
-                {% endfor %}
-            </select>
-            <button type="submit">Update</button>
-        </form>
-    </td>
-    <td>
-        <form method="post" action="/settings/categories/{{ category.id }}/delete" style="display:inline"
-              onsubmit="return confirm('Delete category &quot;{{ category.name }}&quot;? Transactions in it will become uncategorized. Any rules targeting it must be removed first.');">
-            <button type="submit">Delete</button>
-        </form>
-    </td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
+<article>
+    <header><strong>Categories</strong></header>
+    <div class="table-wrap">
+    <table class="compact">
+    <thead><tr><th>Edit</th><th></th></tr></thead>
+    <tbody>
+    {% for category in categories %}
+    <tr>
+        <td>
+            <form method="post" action="/settings/categories/{{ category.id }}" class="inline-form">
+                <input name="name" value="{{ category.name }}" required>
+                <input name="monthly_limit" value="{{ "%.2f"|format(category.monthly_limit_cents / 100) }}" title="Monthly limit">
+                <label>
+                    <input type="checkbox" name="is_income" value="true" {% if category.is_income %}checked{% endif %}>
+                    Income
+                </label>
+                <select name="parent_id">
+                    <option value="">No parent</option>
+                    {% for parent in potential_parents %}
+                        {% if parent.id != category.id %}
+                        <option value="{{ parent.id }}" {% if parent.id == category.parent_id %}selected{% endif %}>
+                            under {{ parent.name }}
+                        </option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+                <button type="submit">Update</button>
+            </form>
+        </td>
+        <td>
+            <form method="post" action="/settings/categories/{{ category.id }}/delete" class="inline-form"
+                  onsubmit="return confirm('Delete category &quot;{{ category.name }}&quot;? Transactions in it will become uncategorized. Any rules targeting it must be removed first.');">
+                <button type="submit" class="outline contrast">Delete</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+    </div>
 
-<h3>New category</h3>
-<form method="post" action="/settings/categories">
-    <input name="name" placeholder="e.g. Groceries" required>
-    <input name="monthly_limit" placeholder="0.00" value="0.00">
-    <label><input type="checkbox" name="is_income" value="true"> Income</label>
-    <select name="parent_id">
-        <option value="">No parent (top-level)</option>
-        {% for parent in potential_parents %}
-        <option value="{{ parent.id }}">under {{ parent.name }}</option>
-        {% endfor %}
-    </select>
-    <button type="submit">Add category</button>
-</form>
-<p style="color:#666;font-size:0.9em">
-    Pick a parent to group this category under it on the dashboard. Only top-level
-    categories can be parents (one-level hierarchy). Parent totals roll up children's
-    spending; alerts still fire on each category's own limit.
-</p>
-<p style="color:#666;font-size:0.9em">
-    Income categories sum positive (incoming) amounts and show up in the Income section of the dashboard.
-    Regular categories sum negative (spending) amounts.
-</p>
+    <h3>New category</h3>
+    <form method="post" action="/settings/categories" class="inline-form">
+        <input name="name" placeholder="e.g. Groceries" required>
+        <input name="monthly_limit" placeholder="0.00" value="0.00" title="Monthly limit">
+        <label><input type="checkbox" name="is_income" value="true"> Income</label>
+        <select name="parent_id">
+            <option value="">No parent (top-level)</option>
+            {% for parent in potential_parents %}
+            <option value="{{ parent.id }}">under {{ parent.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Add category</button>
+    </form>
+    <small class="muted">
+        Pick a parent to group this category under it on the dashboard. Only top-level
+        categories can be parents (one-level hierarchy). Parent totals roll up children's
+        spending; alerts still fire on each category's own limit.
+    </small>
+    <br>
+    <small class="muted">
+        Income categories sum positive (incoming) amounts and show up in the Income section of the dashboard.
+        Regular categories sum negative (spending) amounts.
+    </small>
+</article>
 {% endblock %}

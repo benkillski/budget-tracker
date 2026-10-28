@@ -2,7 +2,7 @@
 {% block content %}
 <h1>Transactions</h1>
 
-<form method="get" action="/transactions" style="display:flex;gap:1rem;align-items:center;margin:1rem 0;flex-wrap:wrap">
+<form method="get" action="/transactions" class="inline-form" style="margin:1rem 0">
     <label>
         Account:
         <select name="account_id" onchange="this.form.submit()">
@@ -33,7 +33,8 @@
     <noscript><button type="submit">Apply</button></noscript>
 </form>
 
-<table>
+<div class="table-wrap">
+<table class="compact striped">
     <thead><tr>
         <th>Posted</th>
         <th>Account</th>
@@ -48,4 +49,5 @@
     {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

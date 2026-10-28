@@ -1,32 +1,88 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Budget Tracker</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css">
     <script src="https://unpkg.com/htmx.org@2.0.3"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <style>
-        body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 900px; }
-        nav a { margin-right: 1rem; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { text-align: left; padding: 0.4rem; border-bottom: 1px solid #ddd; }
-        .bar { background: #eee; border-radius: 4px; overflow: hidden; height: 1rem; margin: 0.25rem 0; }
-        .bar-fill { height: 100%; }
-        .bar-fill.ok { background: #4caf50; }
-        .bar-fill.warn { background: #ff9800; }
-        .bar-fill.over { background: #f44336; }
+        /* Progress bars (Pico doesn't ship these) */
+        .bar {
+            background: var(--pico-muted-border-color);
+            border-radius: var(--pico-border-radius);
+            overflow: hidden;
+            height: 0.6rem;
+            margin: 0.25rem 0;
+        }
+        .bar-fill { height: 100%; transition: width 0.2s ease; }
+        .bar-fill.ok { background: #22c55e; }
+        .bar-fill.warn { background: #f59e0b; }
+        .bar-fill.over { background: #ef4444; }
+
+        /* Row-level inline forms (per-category edit, per-rule edit, filter bar).
+           Overrides Pico's default full-width form controls so they sit on one row. */
+        .inline-form {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 0;
+        }
+        .inline-form input,
+        .inline-form select,
+        .inline-form button {
+            margin: 0;
+            width: auto;
+        }
+        .inline-form input[type="number"] { max-width: 5rem; }
+        .inline-form input[type="text"],
+        .inline-form input:not([type]) { max-width: 14rem; }
+        .inline-form button { padding: 0.35rem 0.75rem; font-size: 0.875rem; }
+
+        /* Flash banners */
+        .flash { padding: 0.75rem 1rem; border-radius: var(--pico-border-radius); margin: 1rem 0; }
+        .flash.ok { background: #dcfce7; color: #166534; }
+        .flash.warn { background: #fef3c7; color: #854d0e; }
+        .flash.error { background: #fee2e2; color: #991b1b; }
+        @media (prefers-color-scheme: dark) {
+            .flash.ok { background: #14532d; color: #bbf7d0; }
+            .flash.warn { background: #713f12; color: #fde68a; }
+            .flash.error { background: #7f1d1d; color: #fecaca; }
+        }
+
+        /* Transactions table — keep rows compact */
+        table.compact th, table.compact td { padding: 0.4rem 0.6rem; }
+        table.compact small { color: var(--pico-muted-color); }
+
+        /* Nested budgets on dashboard */
+        .budget-group { margin-bottom: 1rem; }
+        .budget-group .child { margin-left: 1.5rem; margin-top: 0.4rem; }
+
+        /* Make tables scroll horizontally on narrow screens instead of overflowing. */
+        .table-wrap { overflow-x: auto; }
+
+        /* Keep inline <small> descriptions legible */
+        small.muted { color: var(--pico-muted-color); }
     </style>
 </head>
 <body>
-    <nav>
-        <a href="/">Home</a>
-        <a href="/transactions">Transactions</a>
-        <a href="/rules">Rules</a>
-        <a href="/trends">Trends</a>
-        <a href="/settings">Settings</a>
-        <a href="/import">Import CSV</a>
+    <nav class="container-fluid">
+        <ul>
+            <li><strong>Budget Tracker</strong></li>
+        </ul>
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/transactions">Transactions</a></li>
+            <li><a href="/rules">Rules</a></li>
+            <li><a href="/trends">Trends</a></li>
+            <li><a href="/settings">Settings</a></li>
+            <li><a href="/import">Import</a></li>
+        </ul>
     </nav>
-    <hr>
-    {% block content %}{% endblock %}
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
 </body>
 </html>
