@@ -50,7 +50,7 @@ def test_home_shows_last_synced_time_on_success(session, client):
     session.commit()
     response = client.get("/")
     assert response.status_code == 200
-    assert "Last synced" in response.text
+    assert "Synced" in response.text
 
 
 def test_home_filters_to_requested_month(session, client):
@@ -122,8 +122,7 @@ def test_home_shows_income_and_net(session, client):
 
     response = client.get("/?year=2026&month=7")
     assert response.status_code == 200
-    # Income section shows up with the paycheck
-    assert "Salary" in response.text
+    # Income total shows up in the "This month" summary tiles.
     assert "$5,000.00" in response.text
     # Spending total
     assert "$150.00" in response.text

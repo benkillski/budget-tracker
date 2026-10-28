@@ -3,30 +3,47 @@
 <h1>Rules</h1>
 
 {% if applied_count is not none %}
-<p style="background:#d4edda;padding:0.5rem;border-radius:4px">
+<p class="flash ok">
     Applied rules to {{ applied_count }} transaction{{ "" if applied_count == 1 else "s" }}
     (scope: {{ applied_scope }}).
 </p>
 {% endif %}
 
-<form method="post" action="/rules/apply-all" style="margin:1rem 0;display:flex;gap:0.5rem;align-items:center">
-    <strong>Re-apply all rules to existing transactions:</strong>
-    <button type="submit" name="scope" value="uncategorized">Uncategorized only</button>
-    <button type="submit" name="scope" value="all"
-            onclick="return confirm('Overwrite existing categories where a rule matches? Manually-set categories will be replaced if a rule now matches.');">
-        All transactions (overwrite)
-    </button>
-</form>
+<article>
+    <header><strong>Re-apply all rules to existing transactions</strong></header>
+    <form method="post" action="/rules/apply-all" class="inline-form">
+        <button type="submit" name="scope" value="uncategorized">Uncategorized only</button>
+        <button type="submit" name="scope" value="all" class="outline contrast"
+                onclick="return confirm('Overwrite existing categories where a rule matches? Manually-set categories will be replaced if a rule now matches.');">
+            All transactions (overwrite)
+        </button>
+    </form>
+</article>
 
-<table>
-<thead><tr><th colspan="6">Priority &middot; Account &middot; Source &middot; Match &middot; Value &middot; Category</th><th></th></tr></thead>
+<div class="table-wrap">
+<table class="compact">
+<thead>
+<tr>
+    <th>
+        <div class="rule-form-header" aria-hidden="true">
+            <span>Priority</span>
+            <span>Account</span>
+            <span>Source</span>
+            <span>Match</span>
+            <span>Value</span>
+            <span>Category</span>
+            <span></span>
+        </div>
+    </th>
+    <th></th>
+</tr>
+</thead>
 <tbody>
 {% for rule in rules %}
 <tr>
-    <td colspan="6">
-        <form method="post" action="/rules/{{ rule.id }}"
-              style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
-            <input name="priority" type="number" value="{{ rule.priority }}" size="3" style="width:4em">
+    <td>
+        <form method="post" action="/rules/{{ rule.id }}" class="rule-form">
+            <input name="priority" type="number" value="{{ rule.priority }}" title="Priority">
             <select name="account_id">
                 <option value="">Any account</option>
                 {% for account in accounts %}
@@ -60,51 +77,53 @@
         </form>
     </td>
     <td>
-        <form method="post" action="/rules/{{ rule.id }}/delete" style="display:inline"
+        <form method="post" action="/rules/{{ rule.id }}/delete" class="inline-form"
               onsubmit="return confirm('Delete this rule? Transactions previously matched by it keep their category; only the rule itself is removed.');">
-            <button type="submit">Delete</button>
+            <button type="submit" class="outline contrast">Delete</button>
         </form>
     </td>
 </tr>
 {% endfor %}
 </tbody>
 </table>
+</div>
 
-<h2>New rule</h2>
-<form method="post" action="/rules">
-    <select name="account_id">
-        <option value="">Any account</option>
-        {% for account in accounts %}
-        <option value="{{ account.id }}">{{ account.name }}</option>
-        {% endfor %}
-    </select>
-    <select name="source">
-        <option value="payee">Payee</option>
-        <option value="description">Description</option>
-        <option value="memo">Memo</option>
-        <option value="amount">Amount ($)</option>
-    </select>
-    <select name="match_type">
-        <option value="contains">Contains</option>
-        <option value="equals">Equals</option>
-        <option value="regex">Regex</option>
-        <option value="greater_than">&gt; (amount)</option>
-        <option value="less_than">&lt; (amount)</option>
-    </select>
-    <input name="match_value" placeholder="e.g. KROGER or 9.99" required>
-    <select name="category_id">
-        {% for category in categories %}
-        <option value="{{ category.id }}">{{ category.name }}</option>
-        {% endfor %}
-    </select>
-    <input name="priority" type="number" value="0">
-    <button type="submit">Add rule</button>
-</form>
-<p style="color:#666;font-size:0.9em">
-    Source <strong>Amount ($)</strong> matches on the dollar amount, absolute value — a rule
-    "Amount, Equals, 9.99" catches every $9.99 charge <em>and</em> any $9.99 refund.
-    Use <strong>Equals</strong>, <strong>&gt;</strong>, or <strong>&lt;</strong> with it.
-    Match value is dollars (e.g. 9.99, 1000). For sign-sensitive matching, pair with an
-    account filter.
-</p>
+<article>
+    <header><strong>New rule</strong></header>
+    <form method="post" action="/rules" class="rule-form">
+        <input name="priority" type="number" value="0" title="Priority">
+        <select name="account_id">
+            <option value="">Any account</option>
+            {% for account in accounts %}
+            <option value="{{ account.id }}">{{ account.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="source">
+            <option value="payee">Payee</option>
+            <option value="description">Description</option>
+            <option value="memo">Memo</option>
+            <option value="amount">Amount ($)</option>
+        </select>
+        <select name="match_type">
+            <option value="contains">Contains</option>
+            <option value="equals">Equals</option>
+            <option value="regex">Regex</option>
+            <option value="greater_than">&gt; (amount)</option>
+            <option value="less_than">&lt; (amount)</option>
+        </select>
+        <input name="match_value" placeholder="e.g. KROGER or 9.99" required>
+        <select name="category_id">
+            {% for category in categories %}
+            <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Add rule</button>
+    </form>
+    <small class="muted">
+        Source <strong>Amount ($)</strong> matches on the dollar amount, absolute value — a rule
+        "Amount, Equals, 9.99" catches every $9.99 charge <em>and</em> any $9.99 refund.
+        Match value is dollars (e.g. 9.99, 1000). For sign-sensitive matching, pair with an
+        account filter.
+    </small>
+</article>
 {% endblock %}

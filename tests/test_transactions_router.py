@@ -75,7 +75,7 @@ def test_list_transactions_shows_account_column(session, client):
     _seed(session)
     response = client.get("/transactions")
     assert response.status_code == 200
-    assert "<th>Account</th>" in response.text
+    assert ">Account</th>" in response.text
     assert "Checking" in response.text  # account name rendered on each row
 
 

@@ -2,17 +2,17 @@
     <td>
         {{ transaction.posted_at.strftime("%Y-%m-%d") }}
         {% if transaction.pending %}
-        <br><small style="color:#c80">pending</small>
+        <br><small style="color:#d97706">pending</small>
         {% endif %}
     </td>
-    <td>
+    <td class="hide-mobile">
         {% set account = accounts_by_id.get(transaction.account_id) if accounts_by_id else None %}
         {{ account.name if account else "—" }}
     </td>
     <td>
         {{ transaction.payee }}
         {% if transaction.description and transaction.description != transaction.payee %}
-        <br><small style="color:#666">{{ transaction.description }}</small>
+        <br><small class="muted">{{ transaction.description }}</small>
         {% endif %}
     </td>
     <td>{{ format_money(transaction.amount_cents) }}</td>
@@ -20,7 +20,8 @@
         <select name="category_id"
                 hx-post="/transactions/{{ transaction.id }}/category"
                 hx-target="#txn-{{ transaction.id }}"
-                hx-swap="outerHTML">
+                hx-swap="outerHTML"
+                style="margin:0">
             <option value="">Uncategorized</option>
             {% for category in categories %}
             <option value="{{ category.id }}" {% if transaction.category_id == category.id %}selected{% endif %}>
@@ -31,10 +32,10 @@
     </td>
     <td>
         {% if transaction.category_id %}
-        <form method="post" action="/rules/from-transaction/{{ transaction.id }}" style="display:inline"
+        <form method="post" action="/rules/from-transaction/{{ transaction.id }}" class="inline-form"
               title="Create a 'contains {{ transaction.payee }}' rule for this category">
             <input type="hidden" name="category_id" value="{{ transaction.category_id }}">
-            <button type="submit">+rule</button>
+            <button type="submit" class="outline">+rule</button>
         </form>
         {% endif %}
     </td>
