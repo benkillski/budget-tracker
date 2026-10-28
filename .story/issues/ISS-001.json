@@ -1,14 +1,15 @@
 {
   "components": [],
   "discoveredDate": "2026-10-28",
+  "displayId": "ISS-001",
   "id": "ISS-001",
   "impact": "The test hardcodes datetime(2026, 9, 5) for the transaction and compares against utc_now() for the current budget month. Fails in October, November, etc. — anywhere outside September. Noise in the test suite that masks real failures. Fix: either freeze the clock with freezegun to September, or dynamically use utc_now().year/month in the fixture.",
   "location": [],
   "phase": null,
   "relatedTickets": [],
-  "resolution": null,
-  "resolvedDate": null,
+  "resolution": "Fixed by using utc_now().replace(day=1) in the test fixture instead of hardcoded datetime(2026, 9, 5). The transaction now always lands in the current budget period. Full suite is clean.",
+  "resolvedDate": "2026-10-28",
   "severity": "medium",
-  "status": "open",
+  "status": "resolved",
   "title": "test_run_sync_reports_newly_crossed_thresholds_once fails every month that isn't September"
 }

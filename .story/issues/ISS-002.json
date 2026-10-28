@@ -1,14 +1,15 @@
 {
   "components": [],
   "discoveredDate": "2026-10-28",
+  "displayId": "ISS-002",
   "id": "ISS-002",
   "impact": "pytest emits: 'StarletteDeprecationWarning: Using httpx with starlette.testclient is deprecated; install httpx2 instead.' Will eventually break when the shim is removed. Fix: either upgrade to httpx2 (requires requirements.txt change) or pin a compatible starlette version. Low priority but a known future break.",
   "location": [],
   "phase": null,
   "relatedTickets": [],
-  "resolution": null,
-  "resolvedDate": null,
+  "resolution": "Added httpx2 to requirements-dev.txt. Starlette's TestClient auto-detects it and no longer warns. Suite now runs clean: 89 passed, 0 warnings.",
+  "resolvedDate": "2026-10-28",
   "severity": "low",
-  "status": "open",
+  "status": "resolved",
   "title": "Starlette TestClient deprecation warning"
 }

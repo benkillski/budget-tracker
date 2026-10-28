@@ -75,6 +75,46 @@ def test_budget_period_excludes_income_categories(session):
     assert [r.category_name for r in results] == ["Groceries"]
 
 
+def test_parent_rolls_up_children_spending(session):
+    account = _seed_account(session)
+    food = Category(name="Food", monthly_limit_cents=60000)
+    session.add(food)
+    session.commit()
+    session.refresh(food)
+    groceries = Category(name="Groceries", monthly_limit_cents=40000, parent_id=food.id)
+    dining = Category(name="Dining Out", monthly_limit_cents=20000, parent_id=food.id)
+    session.add(groceries)
+    session.add(dining)
+    session.commit()
+    session.refresh(groceries)
+    session.refresh(dining)
+
+    session.add_all(
+        [
+            Transaction(account_id=account.id, posted_at=datetime(2026, 10, 5), payee="Kroger",
+                        amount_cents=-10000, category_id=groceries.id),
+            Transaction(account_id=account.id, posted_at=datetime(2026, 10, 10), payee="Chipotle",
+                        amount_cents=-2500, category_id=dining.id),
+            # Direct spend on the parent too — rolled-up should include this plus children.
+            Transaction(account_id=account.id, posted_at=datetime(2026, 10, 12), payee="Mystery food",
+                        amount_cents=-500, category_id=food.id),
+        ]
+    )
+    session.commit()
+
+    results = {r.category_name: r for r in compute_budget_period(session, 2026, 10)}
+    assert results["Groceries"].spent_cents == 10000
+    assert results["Groceries"].rolled_up_spent_cents == 10000  # no own children
+    assert results["Dining Out"].spent_cents == 2500
+    # Food's own spend is 500, plus 10000 + 2500 from children.
+    assert results["Food"].spent_cents == 500
+    assert results["Food"].rolled_up_spent_cents == 13000
+    assert results["Food"].parent_id is None
+    assert results["Groceries"].parent_id == food.id
+    assert results["Food"].is_parent is True
+    assert results["Groceries"].is_parent is False
+
+
 def test_income_period_sums_positives_for_income_categories(session):
     account = _seed_account(session)
     salary = Category(name="Salary", monthly_limit_cents=0, is_income=True)

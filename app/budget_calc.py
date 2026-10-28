@@ -1,6 +1,7 @@
 from calendar import monthrange
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
 from sqlmodel import Session, func, select
 
@@ -13,6 +14,8 @@ class CategorySpend:
     category_name: str
     limit_cents: int
     spent_cents: int
+    parent_id: Optional[int] = None
+    rolled_up_spent_cents: int = 0  # own spent + sum of children's spent
 
     @property
     def remaining_cents(self) -> int:
@@ -23,6 +26,10 @@ class CategorySpend:
         if self.limit_cents <= 0:
             return 0.0
         return (self.spent_cents / self.limit_cents) * 100
+
+    @property
+    def is_parent(self) -> bool:
+        return self.rolled_up_spent_cents != self.spent_cents
 
 
 def _month_bounds(year: int, month: int) -> tuple[datetime, datetime]:
@@ -55,10 +62,20 @@ def compute_budget_period(session: Session, year: int, month: int) -> list[Categ
             CategorySpend(
                 category_id=category.id,
                 category_name=category.name,
+                parent_id=category.parent_id,
                 limit_cents=category.monthly_limit_cents,
                 spent_cents=spent_by_category.get(category.id, 0),
+                rolled_up_spent_cents=spent_by_category.get(category.id, 0),
             )
         )
+    # Roll children's spend up into their parents.
+    for item in results:
+        if item.parent_id is None:
+            continue
+        for parent in results:
+            if parent.category_id == item.parent_id:
+                parent.rolled_up_spent_cents += item.spent_cents
+                break
     return results
 
 

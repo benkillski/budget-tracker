@@ -1,12 +1,13 @@
 {
   "blockedBy": [],
-  "completedDate": null,
+  "completedDate": "2026-10-28",
   "createdDate": "2026-10-28",
   "description": "Scheduler currently uses CronTrigger(hour=SYNC_HOUR_UTC, minute=0) so the finest granularity is hourly. Add either: (a) a SYNC_INTERVAL_MINUTES env var that uses an interval trigger instead, or (b) multi-run cron ('every 4 hours'). Note: SimpleFIN itself only refreshes 1-4x per day, so this is more about catching mid-day transactions than true freshness.",
+  "displayId": "T-003",
   "id": "T-003",
   "order": 30,
   "phase": "post-mvp",
-  "status": "open",
+  "status": "complete",
   "title": "Sub-hour sync schedule option",
   "type": "feature"
 }
