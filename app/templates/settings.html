@@ -46,6 +46,10 @@
                     <input type="checkbox" name="is_fixed" value="true" {% if category.is_fixed %}checked{% endif %}>
                     Fixed
                 </label>
+                <label>
+                    <input type="checkbox" name="is_tracked_only" value="true" {% if category.is_tracked_only %}checked{% endif %}>
+                    Tracked
+                </label>
                 <select name="parent_id">
                     <option value="">No parent</option>
                     {% for parent in potential_parents %}
@@ -77,6 +81,7 @@
         <input name="monthly_limit" placeholder="0.00" value="0.00" title="Monthly limit">
         <label><input type="checkbox" name="is_income" value="true"> Income</label>
         <label><input type="checkbox" name="is_fixed" value="true"> Fixed</label>
+        <label><input type="checkbox" name="is_tracked_only" value="true"> Tracked</label>
         <select name="parent_id">
             <option value="">No parent (top-level)</option>
             {% for parent in potential_parents %}
@@ -100,6 +105,12 @@
         <strong>Fixed</strong> categories are predictable monthly bills (rent, insurance). They render as "pending" before
         the bill posts, "paid" when at the expected amount, and "surprise" only if the actual bill exceeds the limit
         by more than 5%. 80% / 100% alert emails are suppressed; only an unexpected overage alerts.
+    </small>
+    <br>
+    <small class="muted">
+        <strong>Tracked</strong> categories are for unpredictable costs you want to see but can't meaningfully budget
+        (healthcare, car repairs). Set the limit to $0 — the category will show the running total on the dashboard
+        without a bar or percentage. No alerts.
     </small>
 </article>
 {% endblock %}

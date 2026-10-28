@@ -22,6 +22,7 @@ class Category(SQLModel, table=True):
     monthly_limit_cents: int = Field(default=0)
     is_income: bool = Field(default=False)
     is_fixed: bool = Field(default=False)
+    is_tracked_only: bool = Field(default=False)
 
 
 class Rule(SQLModel, table=True):

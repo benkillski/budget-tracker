@@ -75,6 +75,24 @@ def test_budget_period_excludes_income_categories(session):
     assert [r.category_name for r in results] == ["Groceries"]
 
 
+def test_tracked_only_category_included_without_limit(session):
+    account = _seed_account(session)
+    health = Category(name="Health", monthly_limit_cents=0, is_tracked_only=True)
+    session.add(health)
+    session.commit()
+    session.refresh(health)
+    session.add(
+        Transaction(account_id=account.id, posted_at=datetime(2026, 10, 10), payee="Doctor",
+                    amount_cents=-15000, category_id=health.id)
+    )
+    session.commit()
+
+    results = {r.category_name: r for r in compute_budget_period(session, 2026, 10)}
+    assert "Health" in results
+    assert results["Health"].is_tracked_only is True
+    assert results["Health"].spent_cents == 15000
+
+
 def test_fixed_category_states(session):
     account = _seed_account(session)
     rent = Category(name="Rent", monthly_limit_cents=140000, is_fixed=True)

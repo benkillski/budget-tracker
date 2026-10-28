@@ -20,6 +20,7 @@ class CategorySpend:
     parent_id: Optional[int] = None
     rolled_up_spent_cents: int = 0  # own spent + sum of children's spent
     is_fixed: bool = False
+    is_tracked_only: bool = False
 
     @property
     def remaining_cents(self) -> int:
@@ -83,6 +84,7 @@ def compute_budget_period(session: Session, year: int, month: int) -> list[Categ
                 spent_cents=spent_by_category.get(category.id, 0),
                 rolled_up_spent_cents=spent_by_category.get(category.id, 0),
                 is_fixed=category.is_fixed,
+                is_tracked_only=category.is_tracked_only,
             )
         )
     # Roll children's spend up into their parents.

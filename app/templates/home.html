@@ -67,12 +67,15 @@
         {% set display_spent = parent.rolled_up_spent_cents if has_children_shown else parent.spent_cents %}
         {% set display_pct = (display_spent / parent.limit_cents * 100) if parent.limit_cents > 0 else 0 %}
 
-        {# Hide categories where limit=0 and no children carry a limit. Set a soft
-           limit if you want a category visible without alerts. #}
-        {% if parent.limit_cents > 0 or has_children_shown %}
+        {# Hide categories where limit=0 and no children carry a limit, UNLESS
+           it's a tracked-only category where we want to see the running total. #}
+        {% if parent.limit_cents > 0 or has_children_shown or parent.is_tracked_only %}
         <article>
             <strong>{{ parent.category_name }}</strong>
-            {% if parent.limit_cents > 0 %}
+            {% if parent.is_tracked_only and parent.limit_cents == 0 %}
+                &mdash; {{ format_money(display_spent) }}
+                <span class="state-tag tracked">tracked</span>
+            {% elif parent.limit_cents > 0 %}
                 {% if parent.is_fixed %}
                     {% set state = parent.fixed_state %}
                     &mdash; {{ format_money(display_spent) }} / {{ format_money(parent.limit_cents) }}

@@ -185,6 +185,45 @@ def test_update_category_rejects_parent_when_it_has_children(session, client):
     assert response.status_code == 400
 
 
+def test_create_category_with_is_tracked_only_flag(session, client):
+    response = client.post(
+        "/settings/categories",
+        data={"name": "Health", "monthly_limit": "0", "is_tracked_only": "true"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    category = session.exec(select(Category).where(Category.name == "Health")).first()
+    assert category.is_tracked_only is True
+    assert category.monthly_limit_cents == 0
+
+
+def test_dashboard_renders_tracked_only_category(session, client):
+    from app.models import Account, Transaction
+    from datetime import datetime
+    from app.timeutil import utc_now
+
+    account = Account(simplefin_account_id="acc-1", name="Checking", institution="Test Bank", balance_cents=0)
+    health = Category(name="Health", monthly_limit_cents=0, is_tracked_only=True)
+    session.add(account)
+    session.add(health)
+    session.commit()
+    session.refresh(account)
+    session.refresh(health)
+    now = utc_now()
+    session.add(
+        Transaction(account_id=account.id, posted_at=now, payee="Doctor",
+                    amount_cents=-15000, category_id=health.id)
+    )
+    session.commit()
+
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Health" in response.text
+    assert "tracked" in response.text  # the state tag
+    assert "$150.00" in response.text
+
+
 def test_create_category_with_is_income_flag(session, client):
     response = client.post(
         "/settings/categories",
