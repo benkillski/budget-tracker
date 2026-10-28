@@ -2,3 +2,5 @@
 pytest>=8.0
 pytest-cov>=5.0
 respx>=0.21
+# starlette's TestClient prefers httpx2 and warns when only httpx is installed.
+httpx2
