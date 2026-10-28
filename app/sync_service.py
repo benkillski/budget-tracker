@@ -67,6 +67,7 @@ def run_sync(session: Session, client: SimpleFINClient, warning_pct: int, alert_
                 description=sf_txn.description or "",
                 memo=sf_txn.memo or "",
                 account_id=account.id,
+                amount_cents=sf_txn.amount_cents,
             )
             session.add(
                 Transaction(

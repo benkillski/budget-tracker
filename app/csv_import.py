@@ -69,6 +69,7 @@ def import_csv_transactions(session: Session, account_id: int, rows: list[RawTra
             description=raw.description or "",
             memo="",
             account_id=account_id,
+            amount_cents=raw.amount_cents,
         )
         session.add(
             Transaction(

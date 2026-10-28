@@ -101,6 +101,7 @@ def apply_rules_to_existing(
             description=txn.description or "",
             memo=txn.memo or "",
             account_id=txn.account_id,
+            amount_cents=txn.amount_cents,
         )
         if matched is None:
             continue

@@ -39,11 +39,14 @@
                 <option value="payee" {% if rule.source == "payee" %}selected{% endif %}>Payee</option>
                 <option value="description" {% if rule.source == "description" %}selected{% endif %}>Description</option>
                 <option value="memo" {% if rule.source == "memo" %}selected{% endif %}>Memo</option>
+                <option value="amount" {% if rule.source == "amount" %}selected{% endif %}>Amount ($)</option>
             </select>
             <select name="match_type">
                 <option value="contains" {% if rule.match_type == "contains" %}selected{% endif %}>Contains</option>
                 <option value="equals" {% if rule.match_type == "equals" %}selected{% endif %}>Equals</option>
                 <option value="regex" {% if rule.match_type == "regex" %}selected{% endif %}>Regex</option>
+                <option value="greater_than" {% if rule.match_type == "greater_than" %}selected{% endif %}>&gt; (amount)</option>
+                <option value="less_than" {% if rule.match_type == "less_than" %}selected{% endif %}>&lt; (amount)</option>
             </select>
             <input name="match_value" value="{{ rule.match_value }}" required>
             <select name="category_id">
@@ -79,13 +82,16 @@
         <option value="payee">Payee</option>
         <option value="description">Description</option>
         <option value="memo">Memo</option>
+        <option value="amount">Amount ($)</option>
     </select>
     <select name="match_type">
         <option value="contains">Contains</option>
         <option value="equals">Equals</option>
         <option value="regex">Regex</option>
+        <option value="greater_than">&gt; (amount)</option>
+        <option value="less_than">&lt; (amount)</option>
     </select>
-    <input name="match_value" placeholder="e.g. KROGER" required>
+    <input name="match_value" placeholder="e.g. KROGER or 9.99" required>
     <select name="category_id">
         {% for category in categories %}
         <option value="{{ category.id }}">{{ category.name }}</option>
@@ -94,4 +100,11 @@
     <input name="priority" type="number" value="0">
     <button type="submit">Add rule</button>
 </form>
+<p style="color:#666;font-size:0.9em">
+    Source <strong>Amount ($)</strong> matches on the dollar amount, absolute value — a rule
+    "Amount, Equals, 9.99" catches every $9.99 charge <em>and</em> any $9.99 refund.
+    Use <strong>Equals</strong>, <strong>&gt;</strong>, or <strong>&lt;</strong> with it.
+    Match value is dollars (e.g. 9.99, 1000). For sign-sensitive matching, pair with an
+    account filter.
+</p>
 {% endblock %}

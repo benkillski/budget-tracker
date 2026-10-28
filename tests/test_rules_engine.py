@@ -45,6 +45,46 @@ def test_rule_without_account_scope_matches_any_account():
     assert apply_rules("TRANSFER TO SAV", [rule]) is rule
 
 
+def test_amount_source_equals_matches_absolute_value():
+    rule = _rule("equals", "9.99", source="amount")
+    # Negative (charge)
+    assert apply_rules("Random", [rule], amount_cents=-999) is rule
+    # Positive (refund) — matches too
+    assert apply_rules("Random", [rule], amount_cents=999) is rule
+    # Different amount
+    assert apply_rules("Random", [rule], amount_cents=-1000) is None
+
+
+def test_amount_source_greater_than():
+    rule = _rule("greater_than", "1000", source="amount")
+    assert apply_rules("Big charge", [rule], amount_cents=-150000) is rule
+    assert apply_rules("Small charge", [rule], amount_cents=-50000) is None
+    assert apply_rules("Exactly at threshold", [rule], amount_cents=-100000) is None
+
+
+def test_amount_source_less_than():
+    rule = _rule("less_than", "5", source="amount")
+    assert apply_rules("Micro", [rule], amount_cents=-350) is rule
+    assert apply_rules("Not micro", [rule], amount_cents=-1500) is None
+
+
+def test_amount_rule_misses_when_amount_not_supplied():
+    rule = _rule("equals", "9.99", source="amount")
+    # Caller didn't pass amount_cents — fail safe (no match).
+    assert apply_rules("Random", [rule]) is None
+
+
+def test_amount_rule_misses_on_invalid_match_value():
+    rule = _rule("equals", "not-a-number", source="amount")
+    assert apply_rules("Random", [rule], amount_cents=-999) is None
+
+
+def test_text_rules_ignore_numeric_match_types():
+    # If someone combines payee + greater_than, nothing matches (defensive).
+    rule = _rule("greater_than", "100", source="payee")
+    assert apply_rules("A very long payee string", [rule], amount_cents=-150) is None
+
+
 def test_rule_matches_description_when_source_is_description():
     rule = _rule("equals", "KEEP THE CHANGE TRANSFER", source="description")
     # Payee alone would NOT match this rule — source is description.
