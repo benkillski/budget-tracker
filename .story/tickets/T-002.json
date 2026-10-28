@@ -1,12 +1,13 @@
 {
   "blockedBy": [],
-  "completedDate": null,
+  "completedDate": "2026-10-28",
   "createdDate": "2026-10-28",
   "description": "Add a Sync Now button on /settings that triggers daily_sync_job inline. Currently requires 'docker compose exec' on the LXC. Useful for forcing a sync after a bank posts a late transaction without waiting until the next scheduled 11:00 UTC run.",
+  "displayId": "T-002",
   "id": "T-002",
   "order": 20,
   "phase": "post-mvp",
-  "status": "open",
+  "status": "complete",
   "title": "Manual 'Sync now' button on Settings",
   "type": "task"
 }

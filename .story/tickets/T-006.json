@@ -3,10 +3,11 @@
   "completedDate": null,
   "createdDate": "2026-10-28",
   "description": "The Category model already has a parent_id column but nothing in the app uses it. Wire up one-level hierarchy: Categories page gets a parent dropdown, budget_calc rolls up spending to parents, alerts fire on parent total or leaf, transactions assign to leaves only. Design doc: pattern #2 (one-level parent/child) from the mental-model discussion. Defer unless a flat list stops being enough.",
+  "displayId": "T-006",
   "id": "T-006",
   "order": 60,
   "phase": "post-mvp",
-  "status": "open",
+  "status": "inprogress",
   "title": "Category hierarchy (parent/child)",
   "type": "feature"
 }

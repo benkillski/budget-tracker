@@ -113,6 +113,78 @@ def test_delete_category_returns_404_for_unknown_id(client):
     assert response.status_code == 404
 
 
+def test_create_category_with_parent(session, client):
+    parent = Category(name="Food", monthly_limit_cents=60000)
+    session.add(parent)
+    session.commit()
+    session.refresh(parent)
+
+    response = client.post(
+        "/settings/categories",
+        data={"name": "Groceries", "monthly_limit": "400.00", "parent_id": str(parent.id)},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    child = session.exec(select(Category).where(Category.name == "Groceries")).first()
+    assert child.parent_id == parent.id
+
+
+def test_create_category_rejects_grandchild(session, client):
+    """One-level hierarchy only: can't make a child of a child."""
+    parent = Category(name="Food", monthly_limit_cents=60000)
+    session.add(parent)
+    session.commit()
+    session.refresh(parent)
+    middle = Category(name="Groceries", monthly_limit_cents=40000, parent_id=parent.id)
+    session.add(middle)
+    session.commit()
+    session.refresh(middle)
+
+    response = client.post(
+        "/settings/categories",
+        data={"name": "Organic", "monthly_limit": "0", "parent_id": str(middle.id)},
+        follow_redirects=False,
+    )
+    assert response.status_code == 400
+
+
+def test_update_category_rejects_self_as_parent(session, client):
+    category = Category(name="Food", monthly_limit_cents=60000)
+    session.add(category)
+    session.commit()
+    session.refresh(category)
+
+    response = client.post(
+        f"/settings/categories/{category.id}",
+        data={"name": "Food", "monthly_limit": "600.00", "parent_id": str(category.id)},
+        follow_redirects=False,
+    )
+    assert response.status_code == 400
+
+
+def test_update_category_rejects_parent_when_it_has_children(session, client):
+    parent = Category(name="Food", monthly_limit_cents=60000)
+    session.add(parent)
+    session.commit()
+    session.refresh(parent)
+    other_top = Category(name="Housing", monthly_limit_cents=200000)
+    session.add(other_top)
+    session.commit()
+    session.refresh(other_top)
+    child = Category(name="Groceries", monthly_limit_cents=40000, parent_id=parent.id)
+    session.add(child)
+    session.commit()
+
+    # Can't flip Food (which has children) into Housing's child.
+    response = client.post(
+        f"/settings/categories/{parent.id}",
+        data={"name": "Food", "monthly_limit": "600.00", "parent_id": str(other_top.id)},
+        follow_redirects=False,
+    )
+    assert response.status_code == 400
+
+
 def test_create_category_with_is_income_flag(session, client):
     response = client.post(
         "/settings/categories",

@@ -27,11 +27,11 @@
 
 <h2>Categories</h2>
 <table>
-<thead><tr><th colspan="3">Name &middot; Monthly limit &middot; Income?</th><th></th></tr></thead>
+<thead><tr><th colspan="4">Name &middot; Monthly limit &middot; Income? &middot; Parent</th><th></th></tr></thead>
 <tbody>
 {% for category in categories %}
 <tr>
-    <td colspan="3">
+    <td colspan="4">
         <form method="post" action="/settings/categories/{{ category.id }}"
               style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
             <input name="name" value="{{ category.name }}" required>
@@ -40,6 +40,16 @@
                 <input type="checkbox" name="is_income" value="true" {% if category.is_income %}checked{% endif %}>
                 Income
             </label>
+            <select name="parent_id">
+                <option value="">No parent</option>
+                {% for parent in potential_parents %}
+                    {% if parent.id != category.id %}
+                    <option value="{{ parent.id }}" {% if parent.id == category.parent_id %}selected{% endif %}>
+                        under {{ parent.name }}
+                    </option>
+                    {% endif %}
+                {% endfor %}
+            </select>
             <button type="submit">Update</button>
         </form>
     </td>
@@ -59,8 +69,19 @@
     <input name="name" placeholder="e.g. Groceries" required>
     <input name="monthly_limit" placeholder="0.00" value="0.00">
     <label><input type="checkbox" name="is_income" value="true"> Income</label>
+    <select name="parent_id">
+        <option value="">No parent (top-level)</option>
+        {% for parent in potential_parents %}
+        <option value="{{ parent.id }}">under {{ parent.name }}</option>
+        {% endfor %}
+    </select>
     <button type="submit">Add category</button>
 </form>
+<p style="color:#666;font-size:0.9em">
+    Pick a parent to group this category under it on the dashboard. Only top-level
+    categories can be parents (one-level hierarchy). Parent totals roll up children's
+    spending; alerts still fire on each category's own limit.
+</p>
 <p style="color:#666;font-size:0.9em">
     Income categories sum positive (incoming) amounts and show up in the Income section of the dashboard.
     Regular categories sum negative (spending) amounts.
