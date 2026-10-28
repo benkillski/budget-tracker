@@ -1,0 +1,15 @@
+{
+  "blockedBy": [
+    "T-010"
+  ],
+  "completedDate": null,
+  "createdDate": "2026-10-28",
+  "description": "On day 1 (or 2) of each new month, send a recap of the previous month: totals (income / spent / net), per-category spending vs limit, carry-over observations if we want them. Separate scheduled job from the daily digest. Reuse the HTML template infra. Could also include \"biggest category by spend\" and \"biggest surprise\" (largest overage).",
+  "displayId": "T-012",
+  "id": "T-012",
+  "order": 120,
+  "phase": "post-mvp",
+  "status": "open",
+  "title": "Month-end summary email",
+  "type": "feature"
+}

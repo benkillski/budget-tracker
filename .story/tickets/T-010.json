@@ -1,0 +1,12 @@
+{
+  "blockedBy": [],
+  "completedDate": null,
+  "createdDate": "2026-10-28",
+  "description": "All emails are plain text today. Add HTML formatting (multipart with plain text fallback). Create a shared Jinja template or helper for consistent styling across digest / alert / sync-failure / month-end. Email HTML needs inline CSS since most clients strip style tags. Scope: simple structure (headers, color-coded percentage spans, muted body text), not a design showpiece. Blocker for digest + month-end enrichment to feel polished.",
+  "id": "T-010",
+  "order": 100,
+  "phase": "post-mvp",
+  "status": "open",
+  "title": "HTML email formatting with shared template",
+  "type": "feature"
+}

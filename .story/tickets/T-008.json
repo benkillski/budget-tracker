@@ -1,0 +1,12 @@
+{
+  "blockedBy": [],
+  "completedDate": null,
+  "createdDate": "2026-10-28",
+  "description": "When daily_sync_job catches an exception (SimpleFIN timeout, auth error, etc.), send an email with the error message so dead syncs don't go unnoticed. Today you only know by opening /. Edge cases: don't spam if the sync fails repeatedly — maybe once per failure streak, or at most once per day. Also consider sending a 'back to healthy' email when sync recovers after a failure.",
+  "id": "T-008",
+  "order": 80,
+  "phase": "post-mvp",
+  "status": "open",
+  "title": "Sync failure email",
+  "type": "task"
+}

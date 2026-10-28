@@ -1,0 +1,15 @@
+{
+  "blockedBy": [
+    "T-010"
+  ],
+  "completedDate": null,
+  "createdDate": "2026-10-28",
+  "description": "The current digest is a flat list of \"name: spent / limit (%)\" per budgeted category. Enrich with: (1) section grouping — Over budget / Approaching limit / On track, (2) top-of-email summary — total income, total spent, net, uncategorized transaction count, (3) parent-category rollups mirroring the dashboard hierarchy, (4) more informative subject line including the over-budget category count. Depends on HTML template infra from the HTML email ticket.",
+  "displayId": "T-009",
+  "id": "T-009",
+  "order": 90,
+  "phase": "post-mvp",
+  "status": "open",
+  "title": "Enriched digest email content",
+  "type": "feature"
+}

@@ -1,0 +1,12 @@
+{
+  "blockedBy": [],
+  "completedDate": null,
+  "createdDate": "2026-10-28",
+  "description": "Add a \"Send test digest\" button on /settings next to \"Sync now\" that fires the current digest (or a template-preview digest) immediately. Lets you verify SMTP, see what the template looks like without waiting for the scheduled job, and iterate on templates. Returns a flash banner with ok/error same pattern as sync-now.",
+  "id": "T-011",
+  "order": 110,
+  "phase": "post-mvp",
+  "status": "open",
+  "title": "Test email button on Settings",
+  "type": "task"
+}

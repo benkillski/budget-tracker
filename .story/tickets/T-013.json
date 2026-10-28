@@ -1,0 +1,12 @@
+{
+  "blockedBy": [],
+  "completedDate": null,
+  "createdDate": "2026-10-28",
+  "description": "Current alert body is 3 lines. Enrich with the 3-5 most recent transactions in that category this month so the user has immediate context — \"here's what pushed Groceries over the limit.\" Could also include days-remaining-in-month and projected end-of-month spend based on current pace.",
+  "id": "T-013",
+  "order": 130,
+  "phase": "post-mvp",
+  "status": "open",
+  "title": "Enriched alert emails with recent transactions",
+  "type": "task"
+}
