@@ -1,13 +1,13 @@
 {
   "blockedBy": [],
-  "completedDate": null,
+  "completedDate": "2026-10-28",
   "createdDate": "2026-10-28",
   "description": "Replace default-browser styling with Pico CSS v2 (classless framework). Add the stylesheet to base.html, add viewport meta tag, wrap body in a container, and tweak templates where needed. Mobile-friendly layout — forms stack on narrow screens, tables scroll horizontally where needed. Keep progress bars (budget bars) custom-styled since Pico doesn't ship bars. Preserve existing functionality: HTMX category select, flash banners, filter forms, inline edit forms. Light overrides for the brand color and dashboard-specific layouts.",
   "displayId": "T-007",
   "id": "T-007",
   "order": 70,
   "phase": "post-mvp",
-  "status": "inprogress",
+  "status": "complete",
   "title": "UI overhaul with Pico CSS, mobile-friendly",
   "type": "feature"
 }
