@@ -73,13 +73,22 @@
         <article>
             <strong>{{ parent.category_name }}</strong>
             {% if parent.limit_cents > 0 %}
-                &mdash; {{ format_money(display_spent) }} / {{ format_money(parent.limit_cents) }}
-                ({{ "%.0f"|format(display_pct) }}%){% if has_children_shown %}
-                <small class="muted">(incl. children)</small>{% endif %}
-                <div class="bar">
-                    <div class="bar-fill {% if display_pct >= 100 %}over{% elif display_pct >= 80 %}warn{% else %}ok{% endif %}"
-                         style="width: {{ [display_pct, 100]|min }}%"></div>
-                </div>
+                {% if parent.is_fixed %}
+                    {% set state = parent.fixed_state %}
+                    &mdash; {{ format_money(display_spent) }} / {{ format_money(parent.limit_cents) }}
+                    <span class="state-tag {{ state }}">{{ state }}</span>
+                    <div class="bar">
+                        <div class="bar-fill {{ state }}" style="width: {{ [display_pct, 100]|min }}%"></div>
+                    </div>
+                {% else %}
+                    &mdash; {{ format_money(display_spent) }} / {{ format_money(parent.limit_cents) }}
+                    ({{ "%.0f"|format(display_pct) }}%){% if has_children_shown %}
+                    <small class="muted">(incl. children)</small>{% endif %}
+                    <div class="bar">
+                        <div class="bar-fill {% if display_pct >= 100 %}over{% elif display_pct >= 80 %}warn{% else %}ok{% endif %}"
+                             style="width: {{ [display_pct, 100]|min }}%"></div>
+                    </div>
+                {% endif %}
             {% else %}
                 &mdash; {{ format_money(display_spent) }}
                 <small class="muted">(rolled up from children)</small>
@@ -88,12 +97,21 @@
             {% for child in children_with_limit %}
                 <div class="child">
                     <small>{{ child.category_name }}</small>
-                    &mdash; {{ format_money(child.spent_cents) }} / {{ format_money(child.limit_cents) }}
-                    ({{ "%.0f"|format(child.pct_used) }}%)
-                    <div class="bar">
-                        <div class="bar-fill {% if child.pct_used >= 100 %}over{% elif child.pct_used >= 80 %}warn{% else %}ok{% endif %}"
-                             style="width: {{ [child.pct_used, 100]|min }}%"></div>
-                    </div>
+                    {% if child.is_fixed %}
+                        {% set child_state = child.fixed_state %}
+                        &mdash; {{ format_money(child.spent_cents) }} / {{ format_money(child.limit_cents) }}
+                        <span class="state-tag {{ child_state }}">{{ child_state }}</span>
+                        <div class="bar">
+                            <div class="bar-fill {{ child_state }}" style="width: {{ [child.pct_used, 100]|min }}%"></div>
+                        </div>
+                    {% else %}
+                        &mdash; {{ format_money(child.spent_cents) }} / {{ format_money(child.limit_cents) }}
+                        ({{ "%.0f"|format(child.pct_used) }}%)
+                        <div class="bar">
+                            <div class="bar-fill {% if child.pct_used >= 100 %}over{% elif child.pct_used >= 80 %}warn{% else %}ok{% endif %}"
+                                 style="width: {{ [child.pct_used, 100]|min }}%"></div>
+                        </div>
+                    {% endif %}
                 </div>
             {% endfor %}
         </article>

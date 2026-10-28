@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from sqlmodel import Session, select
 
-from app.budget_calc import compute_budget_period
+from app.budget_calc import FIXED_SURPRISE_PCT, compute_budget_period
 from app.models import Account, AlertLog, Rule, Transaction
 from app.rules_engine import apply_rules
 from app.simplefin_client import SimpleFINClient
@@ -94,7 +94,13 @@ def run_sync(session: Session, client: SimpleFINClient, warning_pct: int, alert_
     for period in budget_periods:
         if period.limit_cents <= 0:
             continue
-        for threshold in sorted({warning_pct, alert_pct}):
+        # Fixed categories only alert on a surprise overage (>105% of limit).
+        # The 80% / 100% thresholds would fire every month as the bill posts.
+        if period.is_fixed:
+            thresholds_to_check = (FIXED_SURPRISE_PCT,)
+        else:
+            thresholds_to_check = tuple(sorted({warning_pct, alert_pct}))
+        for threshold in thresholds_to_check:
             if period.pct_used < threshold:
                 continue
             already_alerted = session.exec(
