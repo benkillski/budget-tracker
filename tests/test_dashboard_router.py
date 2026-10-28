@@ -122,8 +122,7 @@ def test_home_shows_income_and_net(session, client):
 
     response = client.get("/?year=2026&month=7")
     assert response.status_code == 200
-    # Income section shows up with the paycheck
-    assert "Salary" in response.text
+    # Income total shows up in the "This month" summary tiles.
     assert "$5,000.00" in response.text
     # Spending total
     assert "$150.00" in response.text

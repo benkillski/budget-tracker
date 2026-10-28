@@ -44,20 +44,6 @@
     </div>
 </article>
 
-{% if incomes %}
-<section>
-    <h3>Income</h3>
-    <div class="accounts-grid">
-    {% for income in incomes %}
-        <div class="account-tile">
-            <small class="muted">{{ income.category_name }}</small><br>
-            <strong>{{ format_money(income.received_cents) }}</strong>
-        </div>
-    {% endfor %}
-    </div>
-</section>
-{% endif %}
-
 <section>
     <h3>Accounts</h3>
     <div class="accounts-grid">
@@ -76,42 +62,39 @@
     <div class="budget-grid">
     {% for parent in top_level %}
         {% set children = periods | selectattr("parent_id", "equalto", parent.category_id) | list %}
-        {% set has_children = children | length > 0 %}
-        {% set display_spent = parent.rolled_up_spent_cents if has_children else parent.spent_cents %}
+        {% set children_with_limit = children | rejectattr("limit_cents", "equalto", 0) | list %}
+        {% set has_children_shown = children_with_limit | length > 0 %}
+        {% set display_spent = parent.rolled_up_spent_cents if has_children_shown else parent.spent_cents %}
         {% set display_pct = (display_spent / parent.limit_cents * 100) if parent.limit_cents > 0 else 0 %}
 
-        {% if parent.limit_cents > 0 or display_spent > 0 %}
+        {# Hide categories where limit=0 and no children carry a limit. Set a soft
+           limit if you want a category visible without alerts. #}
+        {% if parent.limit_cents > 0 or has_children_shown %}
         <article>
             <strong>{{ parent.category_name }}</strong>
             {% if parent.limit_cents > 0 %}
                 &mdash; {{ format_money(display_spent) }} / {{ format_money(parent.limit_cents) }}
-                ({{ "%.0f"|format(display_pct) }}%){% if has_children %}
+                ({{ "%.0f"|format(display_pct) }}%){% if has_children_shown %}
                 <small class="muted">(incl. children)</small>{% endif %}
                 <div class="bar">
                     <div class="bar-fill {% if display_pct >= 100 %}over{% elif display_pct >= 80 %}warn{% else %}ok{% endif %}"
                          style="width: {{ [display_pct, 100]|min }}%"></div>
                 </div>
             {% else %}
-                &mdash; {{ format_money(display_spent) }}{% if has_children %}
-                <small class="muted">(rolled up from children)</small>{% endif %}
+                &mdash; {{ format_money(display_spent) }}
+                <small class="muted">(rolled up from children)</small>
             {% endif %}
 
-            {% for child in children %}
-                {% if child.limit_cents > 0 or child.spent_cents > 0 %}
+            {% for child in children_with_limit %}
                 <div class="child">
                     <small>{{ child.category_name }}</small>
-                    {% if child.limit_cents > 0 %}
-                        &mdash; {{ format_money(child.spent_cents) }} / {{ format_money(child.limit_cents) }}
-                        ({{ "%.0f"|format(child.pct_used) }}%)
-                        <div class="bar">
-                            <div class="bar-fill {% if child.pct_used >= 100 %}over{% elif child.pct_used >= 80 %}warn{% else %}ok{% endif %}"
-                                 style="width: {{ [child.pct_used, 100]|min }}%"></div>
-                        </div>
-                    {% else %}
-                        &mdash; {{ format_money(child.spent_cents) }}
-                    {% endif %}
+                    &mdash; {{ format_money(child.spent_cents) }} / {{ format_money(child.limit_cents) }}
+                    ({{ "%.0f"|format(child.pct_used) }}%)
+                    <div class="bar">
+                        <div class="bar-fill {% if child.pct_used >= 100 %}over{% elif child.pct_used >= 80 %}warn{% else %}ok{% endif %}"
+                             style="width: {{ [child.pct_used, 100]|min }}%"></div>
+                    </div>
                 </div>
-                {% endif %}
             {% endfor %}
         </article>
         {% endif %}
