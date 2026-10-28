@@ -5,6 +5,22 @@
 <h2>SimpleFIN connection</h2>
 <p>{{ "Configured" if simplefin_configured else "Not configured (set SIMPLEFIN_ACCESS_URL in .env and redeploy)" }}</p>
 
+{% if sync_result == "ok" %}
+<p style="background:#d4edda;padding:0.5rem;border-radius:4px">Sync complete.</p>
+{% elif sync_result == "error" %}
+<p style="background:#f8d7da;padding:0.5rem;border-radius:4px">
+    Sync failed: {{ sync_message or "unknown error" }}
+</p>
+{% endif %}
+
+{% if simplefin_configured %}
+<form method="post" action="/settings/sync-now" style="margin:0.5rem 0"
+      onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Syncing...';">
+    <button type="submit">Sync now</button>
+    <small style="color:#666">Triggers a SimpleFIN pull immediately. May take up to {{ 120 }} seconds.</small>
+</form>
+{% endif %}
+
 <h2>Notifications</h2>
 <p>Warning threshold: {{ warning_threshold_pct }}% &middot; Alert threshold: {{ alert_threshold_pct }}% &middot; Digest: {{ digest_frequency }}</p>
 <p><em>Edit these via the .env file and redeploy.</em></p>

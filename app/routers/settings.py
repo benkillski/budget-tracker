@@ -1,4 +1,5 @@
 from decimal import Decimal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -6,7 +7,8 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from app.config import settings as app_settings
-from app.db import get_session
+from app.db import engine, get_session
+from app.jobs import daily_sync_job
 from app.models import AlertLog, Category, Rule, Transaction
 from app.money import to_cents
 
@@ -15,7 +17,12 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("")
-def show_settings(request: Request, session: Session = Depends(get_session)):
+def show_settings(
+    request: Request,
+    sync: str | None = None,
+    msg: str | None = None,
+    session: Session = Depends(get_session),
+):
     categories = session.exec(select(Category)).all()
     return templates.TemplateResponse(
         request,
@@ -26,8 +33,27 @@ def show_settings(request: Request, session: Session = Depends(get_session)):
             "warning_threshold_pct": app_settings.warning_threshold_pct,
             "alert_threshold_pct": app_settings.alert_threshold_pct,
             "digest_frequency": app_settings.digest_frequency,
+            "sync_result": sync,
+            "sync_message": msg,
         },
     )
+
+
+@router.post("/sync-now")
+def sync_now():
+    if not app_settings.simplefin_access_url:
+        return RedirectResponse(
+            "/settings?sync=error&msg=" + quote("SimpleFIN access URL is not configured."),
+            status_code=303,
+        )
+    try:
+        daily_sync_job(app_settings, engine)
+    except Exception as exc:  # noqa: BLE001
+        return RedirectResponse(
+            "/settings?sync=error&msg=" + quote(str(exc)[:200]),
+            status_code=303,
+        )
+    return RedirectResponse("/settings?sync=ok", status_code=303)
 
 
 @router.post("/categories")

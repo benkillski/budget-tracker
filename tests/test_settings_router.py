@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest.mock import patch
 
 from sqlmodel import select
 
@@ -122,6 +123,53 @@ def test_create_category_with_is_income_flag(session, client):
 
     category = session.exec(select(Category).where(Category.name == "Salary")).first()
     assert category.is_income is True
+
+
+def test_sync_now_requires_simplefin_configured(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "simplefin_access_url", "")
+
+    response = client.post("/settings/sync-now", follow_redirects=False)
+    assert response.status_code == 303
+    assert "sync=error" in response.headers["location"]
+    assert "not%20configured" in response.headers["location"].lower()
+
+
+def test_sync_now_redirects_ok_on_success(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "simplefin_access_url", "https://user:pass@bridge.example.com/sf")
+
+    with patch("app.routers.settings.daily_sync_job") as mock_job:
+        response = client.post("/settings/sync-now", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/settings?sync=ok"
+    mock_job.assert_called_once()
+
+
+def test_sync_now_surfaces_error_message_on_failure(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "simplefin_access_url", "https://user:pass@bridge.example.com/sf")
+
+    with patch("app.routers.settings.daily_sync_job", side_effect=RuntimeError("broker unreachable")):
+        response = client.post("/settings/sync-now", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert "sync=error" in response.headers["location"]
+    assert "broker%20unreachable" in response.headers["location"]
+
+
+def test_settings_page_renders_sync_banner(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "simplefin_access_url", "https://user:pass@bridge.example.com/sf")
+
+    ok_response = client.get("/settings?sync=ok")
+    assert ok_response.status_code == 200
+    assert "Sync complete" in ok_response.text
+
+    error_response = client.get("/settings?sync=error&msg=network+down")
+    assert "Sync failed" in error_response.text
+    assert "network down" in error_response.text
 
 
 def test_update_category_toggles_is_income(session, client):
