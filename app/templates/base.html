@@ -59,6 +59,28 @@
         /* Transactions table — keep rows compact */
         table.compact th, table.compact td { padding: 0.4rem 0.6rem; }
         table.compact small { color: var(--pico-muted-color); }
+        /* Hide marked columns on narrow screens to avoid horizontal scroll. */
+        @media (max-width: 720px) {
+            .hide-mobile { display: none; }
+        }
+
+        /* Rules edit form — grid layout wraps more predictably than flex. */
+        .rule-form {
+            display: grid;
+            grid-template-columns: 4rem minmax(0, 1fr) 7rem 8rem minmax(0, 1.5fr) minmax(0, 1.3fr) auto;
+            gap: 0.5rem;
+            align-items: center;
+            margin: 0;
+        }
+        .rule-form input, .rule-form select, .rule-form button { width: 100%; margin: 0; }
+        .rule-form input[type="number"] { max-width: none; }
+        .rule-form button { padding: 0.35rem 0.75rem; font-size: 0.875rem; width: auto; }
+        @media (max-width: 900px) {
+            .rule-form { grid-template-columns: 4rem repeat(3, minmax(0, 1fr)); }
+            .rule-form input[name="match_value"],
+            .rule-form select[name="category_id"] { grid-column: 1 / -1; }
+            .rule-form button { grid-column: 1 / -1; justify-self: end; }
+        }
 
         /* Nested budgets on dashboard */
         .budget-group { margin-bottom: 1rem; }

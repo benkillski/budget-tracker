@@ -27,7 +27,7 @@
 {% for rule in rules %}
 <tr>
     <td>
-        <form method="post" action="/rules/{{ rule.id }}" class="inline-form">
+        <form method="post" action="/rules/{{ rule.id }}" class="rule-form">
             <input name="priority" type="number" value="{{ rule.priority }}" title="Priority">
             <select name="account_id">
                 <option value="">Any account</option>
@@ -75,7 +75,8 @@
 
 <article>
     <header><strong>New rule</strong></header>
-    <form method="post" action="/rules" class="inline-form">
+    <form method="post" action="/rules" class="rule-form">
+        <input name="priority" type="number" value="0" title="Priority">
         <select name="account_id">
             <option value="">Any account</option>
             {% for account in accounts %}
@@ -101,7 +102,6 @@
             <option value="{{ category.id }}">{{ category.name }}</option>
             {% endfor %}
         </select>
-        <input name="priority" type="number" value="0" title="Priority">
         <button type="submit">Add rule</button>
     </form>
     <small class="muted">

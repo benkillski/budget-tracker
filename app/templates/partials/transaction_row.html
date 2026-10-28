@@ -5,7 +5,7 @@
         <br><small style="color:#d97706">pending</small>
         {% endif %}
     </td>
-    <td>
+    <td class="hide-mobile">
         {% set account = accounts_by_id.get(transaction.account_id) if accounts_by_id else None %}
         {{ account.name if account else "—" }}
     </td>
