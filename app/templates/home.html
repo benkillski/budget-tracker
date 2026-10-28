@@ -72,8 +72,9 @@
         {% if parent.limit_cents > 0 or has_children_shown or parent.is_tracked_only %}
         <article>
             <strong>{{ parent.category_name }}</strong>
-            {% if parent.is_tracked_only and parent.limit_cents == 0 %}
-                &mdash; {{ format_money(display_spent) }}
+            {% if parent.is_tracked_only %}
+                &mdash; {{ format_money(display_spent) }}{% if parent.limit_cents > 0 %}
+                <small class="muted">(target {{ format_money(parent.limit_cents) }})</small>{% endif %}
                 <span class="state-tag tracked">tracked</span>
             {% elif parent.limit_cents > 0 %}
                 {% if parent.is_fixed %}
