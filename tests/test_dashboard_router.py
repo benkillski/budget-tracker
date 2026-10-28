@@ -50,7 +50,7 @@ def test_home_shows_last_synced_time_on_success(session, client):
     session.commit()
     response = client.get("/")
     assert response.status_code == 200
-    assert "Last synced" in response.text
+    assert "Synced" in response.text
 
 
 def test_home_filters_to_requested_month(session, client):

@@ -60,6 +60,29 @@
         .budget-group { margin-bottom: 1rem; }
         .budget-group .child { margin-left: 1.5rem; margin-top: 0.4rem; }
 
+        /* Dashboard grids — 2 columns on wide screens, 1 on mobile */
+        .budget-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1rem;
+        }
+        .budget-grid article {
+            margin: 0;
+            padding: 1rem 1.2rem;
+        }
+        .budget-grid article .child { margin-left: 1rem; margin-top: 0.4rem; }
+
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 0.5rem 1rem;
+        }
+        .accounts-grid .account-tile {
+            padding: 0.4rem 0.6rem;
+            border-left: 2px solid var(--pico-muted-border-color);
+        }
+        .accounts-grid .account-tile.negative { border-left-color: #ef4444; }
+
         /* Make tables scroll horizontally on narrow screens instead of overflowing. */
         .table-wrap { overflow-x: auto; }
 

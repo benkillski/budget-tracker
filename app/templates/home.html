@@ -8,8 +8,6 @@
 </p>
 {% elif sync_status.last_synced_at is none %}
 <p class="flash warn">No sync has run yet.</p>
-{% else %}
-<p><small class="muted">Last synced {{ sync_status.last_synced_at.strftime("%Y-%m-%d %H:%M") }} UTC</small></p>
 {% endif %}
 
 <nav aria-label="Month navigation" style="display:flex;align-items:center;gap:1rem;margin:1rem 0">
@@ -22,7 +20,12 @@
 </nav>
 
 <article>
-    <header><strong>This month</strong></header>
+    <header style="display:flex;justify-content:space-between;align-items:baseline">
+        <strong>This month</strong>
+        {% if sync_status and sync_status.last_synced_at %}
+        <small class="muted">Synced {{ sync_status.last_synced_at.strftime("%Y-%m-%d %H:%M") }} UTC</small>
+        {% endif %}
+    </header>
     <div class="grid">
         <div>
             <small class="muted">Income</small><br>
@@ -44,27 +47,33 @@
 {% if incomes %}
 <section>
     <h3>Income</h3>
+    <div class="accounts-grid">
     {% for income in incomes %}
-    <div class="budget-group">
-        <strong>{{ income.category_name }}</strong>
-        &mdash; {{ format_money(income.received_cents) }}
-    </div>
+        <div class="account-tile">
+            <small class="muted">{{ income.category_name }}</small><br>
+            <strong>{{ format_money(income.received_cents) }}</strong>
+        </div>
     {% endfor %}
+    </div>
 </section>
 {% endif %}
 
 <section>
     <h3>Accounts</h3>
-    <ul>
+    <div class="accounts-grid">
     {% for account in accounts %}
-        <li>{{ account.name }}: <strong>{{ format_money(account.balance_cents) }}</strong></li>
+        <div class="account-tile {% if account.balance_cents < 0 %}negative{% endif %}">
+            <small class="muted">{{ account.name }}</small><br>
+            <strong>{{ format_money(account.balance_cents) }}</strong>
+        </div>
     {% endfor %}
-    </ul>
+    </div>
 </section>
 
 <section>
     <h3>Budgets</h3>
     {% set top_level = periods | selectattr("parent_id", "none") | list %}
+    <div class="budget-grid">
     {% for parent in top_level %}
         {% set children = periods | selectattr("parent_id", "equalto", parent.category_id) | list %}
         {% set has_children = children | length > 0 %}
@@ -72,7 +81,7 @@
         {% set display_pct = (display_spent / parent.limit_cents * 100) if parent.limit_cents > 0 else 0 %}
 
         {% if parent.limit_cents > 0 or display_spent > 0 %}
-        <div class="budget-group">
+        <article>
             <strong>{{ parent.category_name }}</strong>
             {% if parent.limit_cents > 0 %}
                 &mdash; {{ format_money(display_spent) }} / {{ format_money(parent.limit_cents) }}
@@ -104,8 +113,9 @@
                 </div>
                 {% endif %}
             {% endfor %}
-        </div>
+        </article>
         {% endif %}
     {% endfor %}
+    </div>
 </section>
 {% endblock %}
