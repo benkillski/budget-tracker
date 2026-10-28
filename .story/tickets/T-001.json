@@ -1,0 +1,12 @@
+{
+  "blockedBy": [],
+  "completedDate": null,
+  "createdDate": "2026-10-28",
+  "description": "Add a button on /rules (or /settings) that re-runs apply_rules against every uncategorized transaction, or optionally every transaction. Biggest daily-use gap: when a new rule is created today, it only applies to future syncs. Historical uncategorized rows stay uncategorized until hand-fixed. Scope decision: default to uncategorized-only to avoid overwriting user-set categories; add a 'force overwrite' option if needed.",
+  "id": "T-001",
+  "order": 10,
+  "phase": "post-mvp",
+  "status": "open",
+  "title": "Re-apply all rules to existing transactions",
+  "type": "task"
+}

@@ -1,0 +1,19 @@
+{
+  "blockers": [],
+  "date": "2026-10-28",
+  "phases": [
+    {
+      "description": "Initial project setup.",
+      "id": "p0",
+      "label": "PHASE 0",
+      "name": "Setup"
+    },
+    {
+      "description": "Post-MVP backlog: UX improvements, test hygiene, deferred features flagged during initial build.",
+      "id": "post-mvp",
+      "label": "PHASE 2",
+      "name": "Post-MVP enhancements"
+    }
+  ],
+  "title": "budget-tracker"
+}

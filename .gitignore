@@ -33,3 +33,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Storybloq local-only state (keep the roadmap, tickets, and handovers)
+.story/snapshots/
+.story/sessions/
+.story/status.json
+.story/telemetry/

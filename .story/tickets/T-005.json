@@ -1,0 +1,12 @@
+{
+  "blockedBy": [],
+  "completedDate": null,
+  "createdDate": "2026-10-28",
+  "description": "Let a single transaction be split across multiple categories (e.g., $120 Target run → $80 Groceries + $40 Household). Requires schema change: new TransactionSplit model or self-referential sub-transactions. UI: on /transactions, a 'split' action that opens a form with multiple category+amount rows summing to the total.",
+  "id": "T-005",
+  "order": 50,
+  "phase": "post-mvp",
+  "status": "open",
+  "title": "Transaction splits",
+  "type": "feature"
+}

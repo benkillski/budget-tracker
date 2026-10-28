@@ -1,0 +1,12 @@
+{
+  "blockedBy": [],
+  "completedDate": null,
+  "createdDate": "2026-10-28",
+  "description": "Rules currently match on string fields (payee, description, memo). Add numeric match types for amount: greater_than, less_than, equals_amount. Useful for 'any .99 charge → Subscriptions' or 'any transaction over $1000 → Review'. Requires: new match_type values in rules_engine, amount comparison code path, UI controls on /rules.",
+  "id": "T-004",
+  "order": 40,
+  "phase": "post-mvp",
+  "status": "open",
+  "title": "Amount-based rule matching",
+  "type": "feature"
+}
