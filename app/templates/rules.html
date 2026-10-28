@@ -1,6 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Rules</h1>
+
+{% if applied_count is not none %}
+<p style="background:#d4edda;padding:0.5rem;border-radius:4px">
+    Applied rules to {{ applied_count }} transaction{{ "" if applied_count == 1 else "s" }}
+    (scope: {{ applied_scope }}).
+</p>
+{% endif %}
+
+<form method="post" action="/rules/apply-all" style="margin:1rem 0;display:flex;gap:0.5rem;align-items:center">
+    <strong>Re-apply all rules to existing transactions:</strong>
+    <button type="submit" name="scope" value="uncategorized">Uncategorized only</button>
+    <button type="submit" name="scope" value="all"
+            onclick="return confirm('Overwrite existing categories where a rule matches? Manually-set categories will be replaced if a rule now matches.');">
+        All transactions (overwrite)
+    </button>
+</form>
+
 <table>
 <thead><tr><th colspan="6">Priority &middot; Account &middot; Source &middot; Match &middot; Value &middot; Category</th><th></th></tr></thead>
 <tbody>

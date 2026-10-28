@@ -91,6 +91,119 @@ def test_delete_rule_returns_404_for_unknown_id(client):
     assert response.status_code == 404
 
 
+def _seed_account_category_rule(session, rule_source: str = "payee", match_value: str = "KROGER"):
+    account = Account(simplefin_account_id="acc-1", name="Checking", institution="Test Bank")
+    category = Category(name="Groceries", monthly_limit_cents=10000)
+    session.add(account)
+    session.add(category)
+    session.commit()
+    session.refresh(account)
+    session.refresh(category)
+    rule = Rule(
+        source=rule_source,
+        match_type="contains",
+        match_value=match_value,
+        category_id=category.id,
+        priority=0,
+    )
+    session.add(rule)
+    session.commit()
+    session.refresh(rule)
+    return account, category, rule
+
+
+def test_apply_all_defaults_to_uncategorized_scope(session, client):
+    account, category, rule = _seed_account_category_rule(session)
+    # Previously categorized (manually) — scope=uncategorized must NOT touch this.
+    other_cat = Category(name="Entertainment", monthly_limit_cents=5000)
+    session.add(other_cat)
+    session.commit()
+    session.refresh(other_cat)
+    already_categorized = Transaction(
+        account_id=account.id, posted_at=datetime(2026, 10, 1), payee="KROGER #1",
+        amount_cents=-1000, category_id=other_cat.id,
+    )
+    needs_rule = Transaction(
+        account_id=account.id, posted_at=datetime(2026, 10, 2), payee="KROGER #2",
+        amount_cents=-1500,
+    )
+    session.add(already_categorized)
+    session.add(needs_rule)
+    session.commit()
+    session.refresh(already_categorized)
+    session.refresh(needs_rule)
+
+    response = client.post("/rules/apply-all", data={"scope": "uncategorized"}, follow_redirects=False)
+    assert response.status_code == 303
+    assert "applied=1" in response.headers["location"]
+    assert "scope=uncategorized" in response.headers["location"]
+
+    session.refresh(already_categorized)
+    session.refresh(needs_rule)
+    assert already_categorized.category_id == other_cat.id  # untouched
+    assert needs_rule.category_id == category.id
+    assert needs_rule.rule_applied_id == rule.id
+
+
+def test_apply_all_with_scope_all_overwrites_existing_categories(session, client):
+    account, category, rule = _seed_account_category_rule(session)
+    other_cat = Category(name="Entertainment", monthly_limit_cents=5000)
+    session.add(other_cat)
+    session.commit()
+    session.refresh(other_cat)
+    txn = Transaction(
+        account_id=account.id, posted_at=datetime(2026, 10, 1), payee="KROGER #1",
+        amount_cents=-1000, category_id=other_cat.id,
+    )
+    session.add(txn)
+    session.commit()
+    session.refresh(txn)
+
+    response = client.post("/rules/apply-all", data={"scope": "all"}, follow_redirects=False)
+    assert response.status_code == 303
+    assert "applied=1" in response.headers["location"]
+    assert "scope=all" in response.headers["location"]
+
+    session.refresh(txn)
+    assert txn.category_id == category.id  # overwritten
+    assert txn.rule_applied_id == rule.id
+
+
+def test_apply_all_skips_already_matching_transactions(session, client):
+    account, category, rule = _seed_account_category_rule(session)
+    txn = Transaction(
+        account_id=account.id, posted_at=datetime(2026, 10, 1), payee="KROGER #1",
+        amount_cents=-1000, category_id=category.id, rule_applied_id=rule.id,
+    )
+    session.add(txn)
+    session.commit()
+
+    response = client.post("/rules/apply-all", data={"scope": "all"}, follow_redirects=False)
+    assert response.status_code == 303
+    # Count stays 0 — already in the matched state.
+    assert "applied=0" in response.headers["location"]
+
+
+def test_apply_all_uses_description_source_rule(session, client):
+    account, category, rule = _seed_account_category_rule(
+        session, rule_source="description", match_value="KEEP THE CHANGE"
+    )
+    txn = Transaction(
+        account_id=account.id, posted_at=datetime(2026, 10, 1), payee="Transfer",
+        description="KEEP THE CHANGE TRANSFER", amount_cents=-50,
+    )
+    session.add(txn)
+    session.commit()
+    session.refresh(txn)
+
+    response = client.post("/rules/apply-all", data={"scope": "uncategorized"}, follow_redirects=False)
+    assert response.status_code == 303
+
+    session.refresh(txn)
+    assert txn.category_id == category.id
+    assert txn.rule_applied_id == rule.id
+
+
 def test_update_rule_changes_all_fields(session, client):
     first_cat = Category(name="Dining", monthly_limit_cents=10000)
     second_cat = Category(name="Groceries", monthly_limit_cents=50000)

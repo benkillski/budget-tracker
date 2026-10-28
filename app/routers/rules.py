@@ -5,20 +5,32 @@ from sqlmodel import Session, select
 
 from app.db import get_session
 from app.models import Account, Category, Rule, Transaction
+from app.rules_engine import apply_rules
 
 router = APIRouter(prefix="/rules")
 templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("")
-def list_rules(request: Request, session: Session = Depends(get_session)):
+def list_rules(
+    request: Request,
+    applied: int | None = None,
+    scope: str | None = None,
+    session: Session = Depends(get_session),
+):
     rules = session.exec(select(Rule).order_by(Rule.priority)).all()
     categories = session.exec(select(Category).order_by(Category.name)).all()
     accounts = session.exec(select(Account).order_by(Account.name)).all()
     return templates.TemplateResponse(
         request,
         "rules.html",
-        {"rules": rules, "categories": categories, "accounts": accounts},
+        {
+            "rules": rules,
+            "categories": categories,
+            "accounts": accounts,
+            "applied_count": applied,
+            "applied_scope": scope,
+        },
     )
 
 
@@ -68,6 +80,39 @@ def create_rule_from_transaction(
         session.add(transaction)
         session.commit()
     return RedirectResponse("/transactions", status_code=303)
+
+
+@router.post("/apply-all")
+def apply_rules_to_existing(
+    scope: str = Form("uncategorized"),
+    session: Session = Depends(get_session),
+):
+    rules = session.exec(select(Rule).order_by(Rule.priority)).all()
+    query = select(Transaction)
+    if scope != "all":
+        scope = "uncategorized"
+        query = query.where(Transaction.category_id.is_(None))
+
+    changed = 0
+    for txn in session.exec(query).all():
+        matched = apply_rules(
+            txn.payee,
+            rules,
+            description=txn.description or "",
+            memo=txn.memo or "",
+            account_id=txn.account_id,
+        )
+        if matched is None:
+            continue
+        if txn.category_id == matched.category_id and txn.rule_applied_id == matched.id:
+            continue
+        txn.category_id = matched.category_id
+        txn.rule_applied_id = matched.id
+        session.add(txn)
+        changed += 1
+
+    session.commit()
+    return RedirectResponse(f"/rules?applied={changed}&scope={scope}", status_code=303)
 
 
 @router.post("/{rule_id}")
