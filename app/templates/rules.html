@@ -22,7 +22,22 @@
 
 <div class="table-wrap">
 <table class="compact">
-<thead><tr><th>Rule</th><th></th></tr></thead>
+<thead>
+<tr>
+    <th>
+        <div class="rule-form-header" aria-hidden="true">
+            <span>Priority</span>
+            <span>Account</span>
+            <span>Source</span>
+            <span>Match</span>
+            <span>Value</span>
+            <span>Category</span>
+            <span></span>
+        </div>
+    </th>
+    <th></th>
+</tr>
+</thead>
 <tbody>
 {% for rule in rules %}
 <tr>

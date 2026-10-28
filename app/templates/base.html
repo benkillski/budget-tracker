@@ -65,12 +65,26 @@
         }
 
         /* Rules edit form — grid layout wraps more predictably than flex. */
-        .rule-form {
+        .rule-form,
+        .rule-form-header {
             display: grid;
             grid-template-columns: 4rem minmax(0, 1fr) 7rem 8rem minmax(0, 1.5fr) minmax(0, 1.3fr) auto;
             gap: 0.5rem;
             align-items: center;
             margin: 0;
+        }
+        .rule-form-header {
+            font-size: 0.75rem;
+            color: var(--pico-muted-color);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid var(--pico-muted-border-color);
+        }
+        .rule-form-header span { padding: 0 0.4rem; }
+        @media (max-width: 900px) {
+            .rule-form-header { display: none; }
         }
         .rule-form input, .rule-form select, .rule-form button { width: 100%; margin: 0; }
         .rule-form input[type="number"] { max-width: none; }
