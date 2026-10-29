@@ -1,13 +1,13 @@
 {
   "blockedBy": [],
-  "completedDate": null,
+  "completedDate": "2026-10-28",
   "createdDate": "2026-10-28",
   "description": "Fourth category kind for things you want to see on the dashboard but can't meaningfully budget — unpredictable costs like Healthcare, Car Maintenance surprises, or anything where setting a fake limit would just produce false alerts.\n\nAdd is_tracked_only flag on Category. Behavior:\n- limit=0 and is_tracked_only=true: dashboard shows the category with just the current spend (\"Health: $150\"), no bar, no percentage, no alerts\n- limit=0 and is_tracked_only=false: still hidden (preserves the Transfers behavior)\n- Settings: Tracked checkbox alongside Income and Fixed\n\nScope:\n1. Schema: ALTER TABLE category ADD COLUMN is_tracked_only BOOLEAN NOT NULL DEFAULT 0\n2. Settings form: Tracked checkbox + help note; mutually orthogonal with Income (which already sums positives)\n3. budget_calc: expose is_tracked_only on CategorySpend\n4. Dashboard: render tracked-only categories as a compact line (spend only, muted) in Budgets grid or a dedicated \"Tracking\" section\n5. sync_service: tracked-only categories never fire alerts (limit=0 already short-circuits in current code)\n6. Tests\n7. Migration note in deploy",
   "displayId": "T-015",
   "id": "T-015",
   "order": 150,
   "phase": "post-mvp",
-  "status": "inprogress",
+  "status": "complete",
   "title": "Tracked-only category kind (no limit, no alerts)",
   "type": "feature"
 }
