@@ -98,6 +98,7 @@ def create_category(
     monthly_limit: str = Form("0"),
     is_income: bool = Form(False),
     is_fixed: bool = Form(False),
+    is_tracked_only: bool = Form(False),
     parent_id: str = Form(""),
     session: Session = Depends(get_session),
 ):
@@ -108,6 +109,7 @@ def create_category(
             monthly_limit_cents=to_cents(Decimal(monthly_limit)),
             is_income=is_income,
             is_fixed=is_fixed,
+            is_tracked_only=is_tracked_only,
             parent_id=parent,
         )
     )
@@ -122,6 +124,7 @@ def update_category(
     monthly_limit: str = Form(...),
     is_income: bool = Form(False),
     is_fixed: bool = Form(False),
+    is_tracked_only: bool = Form(False),
     parent_id: str = Form(""),
     session: Session = Depends(get_session),
 ):
@@ -131,6 +134,7 @@ def update_category(
         category.monthly_limit_cents = to_cents(Decimal(monthly_limit))
         category.is_income = is_income
         category.is_fixed = is_fixed
+        category.is_tracked_only = is_tracked_only
         category.parent_id = _parse_parent_id(session, parent_id, self_id=category_id)
         session.add(category)
         session.commit()
