@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 
 from app.config import settings as app_settings
 from app.db import engine, get_session
-from app.jobs import daily_sync_job
+from app.jobs import daily_sync_job, digest_job
 from app.models import AlertLog, Category, Rule, Transaction
 from app.money import to_cents
 
@@ -21,12 +21,15 @@ def show_settings(
     request: Request,
     sync: str | None = None,
     msg: str | None = None,
+    test_digest: str | None = None,
+    test_digest_msg: str | None = None,
     session: Session = Depends(get_session),
 ):
     categories = session.exec(select(Category).order_by(Category.name)).all()
     # Only top-level categories (parent_id IS NULL) are valid parents, so the
     # hierarchy stays one level deep.
     potential_parents = [c for c in categories if c.parent_id is None]
+    smtp_configured = bool(app_settings.smtp_host and app_settings.smtp_to)
     return templates.TemplateResponse(
         request,
         "settings.html",
@@ -34,11 +37,15 @@ def show_settings(
             "categories": categories,
             "potential_parents": potential_parents,
             "simplefin_configured": bool(app_settings.simplefin_access_url),
+            "smtp_configured": smtp_configured,
+            "smtp_to": app_settings.smtp_to,
             "warning_threshold_pct": app_settings.warning_threshold_pct,
             "alert_threshold_pct": app_settings.alert_threshold_pct,
             "digest_frequency": app_settings.digest_frequency,
             "sync_result": sync,
             "sync_message": msg,
+            "test_digest_result": test_digest,
+            "test_digest_message": test_digest_msg,
         },
     )
 
@@ -58,6 +65,23 @@ def sync_now():
             status_code=303,
         )
     return RedirectResponse("/settings?sync=ok", status_code=303)
+
+
+@router.post("/send-test-digest")
+def send_test_digest():
+    if not app_settings.smtp_host or not app_settings.smtp_to:
+        return RedirectResponse(
+            "/settings?test_digest=error&msg=" + quote("SMTP is not configured."),
+            status_code=303,
+        )
+    try:
+        digest_job(app_settings, engine)
+    except Exception as exc:  # noqa: BLE001
+        return RedirectResponse(
+            "/settings?test_digest=error&msg=" + quote(str(exc)[:200]),
+            status_code=303,
+        )
+    return RedirectResponse("/settings?test_digest=ok", status_code=303)
 
 
 def _parse_parent_id(session: Session, raw: str, self_id: int | None) -> int | None:
