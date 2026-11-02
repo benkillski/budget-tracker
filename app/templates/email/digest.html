@@ -1,0 +1,31 @@
+{% extends "email/base.html" %}
+{% block header %}Budget digest{% endblock %}
+{% block body %}
+<p>Here's your current spending snapshot by category:</p>
+<table style="width:100%;border-collapse:collapse;margin-top:1rem;">
+    <thead>
+        <tr style="border-bottom:2px solid #e2e8f0;">
+            <th style="padding:0.5rem 0;text-align:left;color:#64748b;font-weight:600;font-size:0.875rem;">Category</th>
+            <th style="padding:0.5rem 0;text-align:right;color:#64748b;font-weight:600;font-size:0.875rem;">Spent / Limit</th>
+            <th style="padding:0.5rem 0;text-align:right;color:#64748b;font-weight:600;font-size:0.875rem;">%</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for p in periods if p.limit_cents > 0 %}
+        {% set over = p.pct_used >= 100 %}
+        {% set warn = p.pct_used >= 80 and not over %}
+        <tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:0.5rem 0;"><strong>{{ p.category_name }}</strong></td>
+            <td style="padding:0.5rem 0;text-align:right;color:#374151;">
+                {{ format_money(p.spent_cents) }} / {{ format_money(p.limit_cents) }}
+            </td>
+            <td style="padding:0.5rem 0;text-align:right;font-weight:600;color:{% if over %}#dc2626{% elif warn %}#d97706{% else %}#16a34a{% endif %};">
+                {{ "%.0f"|format(p.pct_used) }}%
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="3" style="padding:0.5rem 0;color:#94a3b8;">No budgeted categories yet.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
