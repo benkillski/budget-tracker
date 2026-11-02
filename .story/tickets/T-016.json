@@ -1,0 +1,13 @@
+{
+  "blockedBy": [],
+  "completedDate": null,
+  "createdDate": "2026-11-02",
+  "description": "The transactions page currently fetches and renders every transaction matching the filters, with no limit or pagination. Each row is a stateful HTMX form, so 2000+ rows will start to feel sluggish. Default the view to the current month and let users navigate to other months (same pattern as the dashboard), with a \"Show all\" escape hatch when needed.\n\nScope:\n1. Router: accept year, month, show_all query params; default to current month if unset\n2. Apply posted_at range filter when not show_all\n3. Compute prev_year/prev_month/next_year/next_month for navigation\n4. Template: month nav strip (Prev / month label / Next / Today) and a \"Show all\" button\n5. Preserve existing account_id, category_id, uncategorized_only filters\n6. Tests",
+  "displayId": "T-016",
+  "id": "T-016",
+  "order": 160,
+  "phase": "post-mvp",
+  "status": "inprogress",
+  "title": "Default /transactions to current month with navigation",
+  "type": "feature"
+}

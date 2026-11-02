@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app.models import Account, Category, Rule, Transaction
+from app.timeutil import utc_now
 
 
 def _seed(session):
@@ -29,10 +30,10 @@ def _seed(session):
     return category, categorized, uncategorized
 
 
-def test_list_transactions_shows_all_by_default(session, client):
+def test_list_transactions_show_all_shows_everything(session, client):
     _seed(session)
 
-    response = client.get("/transactions")
+    response = client.get("/transactions?show_all=true")
 
     assert response.status_code == 200
     assert "Kroger" in response.text
@@ -42,7 +43,7 @@ def test_list_transactions_shows_all_by_default(session, client):
 def test_list_transactions_filters_to_uncategorized(session, client):
     _seed(session)
 
-    response = client.get("/transactions?uncategorized_only=true")
+    response = client.get("/transactions?uncategorized_only=true&show_all=true")
 
     assert response.status_code == 200
     assert "Mystery Charge" in response.text
@@ -73,10 +74,40 @@ def test_set_category_returns_404_for_unknown_transaction(client):
 
 def test_list_transactions_shows_account_column(session, client):
     _seed(session)
-    response = client.get("/transactions")
+    # _seed uses September dates — if today isn't September, those won't appear
+    # in the default (current month) view. Use show_all to see them regardless.
+    response = client.get("/transactions?show_all=true")
     assert response.status_code == 200
     assert ">Account</th>" in response.text
     assert "Checking" in response.text  # account name rendered on each row
+
+
+def test_list_transactions_defaults_to_current_month(session, client):
+    _seed(session)
+    # _seed uses September 2026 dates. Default view = current month = not September.
+    now = utc_now()
+    response = client.get("/transactions")
+    assert response.status_code == 200
+    assert now.strftime("%B %Y") in response.text
+    # September test data isn't visible unless we navigate there.
+    if now.month != 9 or now.year != 2026:
+        assert "Mystery Charge" not in response.text
+
+
+def test_list_transactions_shows_all_with_show_all_param(session, client):
+    _seed(session)
+    response = client.get("/transactions?show_all=true")
+    assert response.status_code == 200
+    assert "All transactions" in response.text
+    assert "Mystery Charge" in response.text  # September rows visible
+
+
+def test_list_transactions_specific_month_param(session, client):
+    _seed(session)
+    response = client.get("/transactions?year=2026&month=9")
+    assert response.status_code == 200
+    assert "September 2026" in response.text
+    assert "Mystery Charge" in response.text
 
 
 def test_list_transactions_accepts_empty_account_id(session, client):
@@ -84,11 +115,11 @@ def test_list_transactions_accepts_empty_account_id(session, client):
     'All accounts' is picked. Must not 422 the request."""
     _seed(session)
 
-    response = client.get("/transactions?account_id=")
+    response = client.get("/transactions?account_id=&show_all=true")
     assert response.status_code == 200
     assert "Kroger" in response.text
 
-    response = client.get("/transactions?account_id=&uncategorized_only=true")
+    response = client.get("/transactions?account_id=&uncategorized_only=true&show_all=true")
     assert response.status_code == 200
     assert "Mystery Charge" in response.text
 
@@ -96,7 +127,7 @@ def test_list_transactions_accepts_empty_account_id(session, client):
 def test_list_transactions_filters_by_category(session, client):
     category, categorized, uncategorized = _seed(session)
 
-    response = client.get(f"/transactions?category_id={category.id}")
+    response = client.get(f"/transactions?category_id={category.id}&show_all=true")
     assert response.status_code == 200
     assert "Kroger" in response.text
     assert "Mystery Charge" not in response.text
@@ -104,7 +135,7 @@ def test_list_transactions_filters_by_category(session, client):
 
 def test_list_transactions_accepts_empty_category_id(session, client):
     _seed(session)
-    response = client.get("/transactions?category_id=")
+    response = client.get("/transactions?category_id=&show_all=true")
     assert response.status_code == 200
     assert "Kroger" in response.text
 
@@ -127,12 +158,12 @@ def test_list_transactions_filters_by_account(session, client):
     )
     session.commit()
 
-    response = client.get(f"/transactions?account_id={account1.id}")
+    response = client.get(f"/transactions?account_id={account1.id}&show_all=true")
     assert response.status_code == 200
     assert "Checking payee" in response.text
     assert "Savings payee" not in response.text
 
-    response = client.get(f"/transactions?account_id={account2.id}")
+    response = client.get(f"/transactions?account_id={account2.id}&show_all=true")
     assert "Savings payee" in response.text
     assert "Checking payee" not in response.text
 
@@ -162,7 +193,7 @@ def test_list_transactions_renders_description_when_distinct_from_payee(session,
     )
     session.commit()
 
-    response = client.get("/transactions")
+    response = client.get("/transactions?show_all=true")
 
     assert response.status_code == 200
     assert "KROGER #123 CINCINNATI OH" in response.text
