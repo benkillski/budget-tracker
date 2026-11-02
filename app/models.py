@@ -68,3 +68,6 @@ class SyncStatus(SQLModel, table=True):
     last_synced_at: Optional[NaiveDatetime] = None
     last_sync_ok: bool = Field(default=True)
     last_error: Optional[str] = None
+    # When non-null, we've already emailed about an ongoing failure streak.
+    # Used to dedupe sync-failure emails and detect recovery.
+    failure_notified_at: Optional[NaiveDatetime] = None

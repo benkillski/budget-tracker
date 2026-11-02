@@ -1,14 +1,26 @@
-from datetime import date
+import logging
+from datetime import date, timedelta
 
 from sqlmodel import Session, func, select
 
 from app.budget_calc import compute_budget_period, compute_income_period, month_bounds
 from app.config import Settings
 from app.models import AlertLog, SyncStatus, Transaction
-from app.notifications import DigestContent, SMTPConfig, send_alert_email, send_digest_email
+from app.notifications import (
+    DigestContent,
+    SMTPConfig,
+    send_alert_email,
+    send_digest_email,
+    send_sync_failure_email,
+    send_sync_recovery_email,
+)
 from app.simplefin_client import SimpleFINClient
 from app.sync_service import run_sync
 from app.timeutil import utc_now
+
+SYNC_FAILURE_RENOTIFY = timedelta(hours=24)
+
+logger = logging.getLogger(__name__)
 
 
 def _smtp_config(settings: Settings) -> SMTPConfig:
@@ -27,12 +39,14 @@ def daily_sync_job(settings: Settings, engine) -> None:
         settings.simplefin_access_url,
         timeout_seconds=settings.simplefin_timeout_seconds,
     )
+    smtp_config = _smtp_config(settings)
     with Session(engine) as session:
         status = session.get(SyncStatus, 1) or SyncStatus(id=1)
+        was_in_failure_streak = status.failure_notified_at is not None
+        previous_error = status.last_error
         try:
             result = run_sync(session, client, settings.warning_threshold_pct, settings.alert_threshold_pct)
 
-            smtp_config = _smtp_config(settings)
             now = utc_now()
             for crossing in result.newly_crossed:
                 # Send first, log only after success: if SMTP fails, no AlertLog is
@@ -49,9 +63,23 @@ def daily_sync_job(settings: Settings, engine) -> None:
                 )
                 session.commit()
         except Exception as exc:
-            status.last_synced_at = utc_now()
+            now = utc_now()
+            status.last_synced_at = now
             status.last_sync_ok = False
             status.last_error = str(exc)
+            # Dedupe failure emails: send on first failure in a streak OR after
+            # the renotify window elapses. Don't let email errors mask the sync
+            # error — that's the one the caller cares about.
+            should_notify = (
+                status.failure_notified_at is None
+                or (now - status.failure_notified_at) >= SYNC_FAILURE_RENOTIFY
+            )
+            if should_notify:
+                try:
+                    send_sync_failure_email(smtp_config, str(exc))
+                    status.failure_notified_at = now
+                except Exception:
+                    logger.exception("Failed to send sync-failure email")
             session.add(status)
             session.commit()
             raise
@@ -59,6 +87,12 @@ def daily_sync_job(settings: Settings, engine) -> None:
         status.last_synced_at = utc_now()
         status.last_sync_ok = True
         status.last_error = None
+        if was_in_failure_streak:
+            try:
+                send_sync_recovery_email(smtp_config, last_error=previous_error)
+            except Exception:
+                logger.exception("Failed to send sync-recovery email")
+        status.failure_notified_at = None
         session.add(status)
         session.commit()
 

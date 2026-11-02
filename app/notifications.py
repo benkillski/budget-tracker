@@ -106,6 +106,27 @@ def _send(config: SMTPConfig, subject: str, text_body: str, html_body: str | Non
         smtp.send_message(message)
 
 
+def send_sync_failure_email(config: SMTPConfig, error_message: str) -> None:
+    subject = "Budget Tracker: sync failed"
+    text_body = (
+        "The scheduled SimpleFIN sync failed. New transactions have not been pulled since.\n\n"
+        f"Error: {error_message}\n\n"
+        "Try 'Sync now' on the Settings page to diagnose, or check the dashboard for the last successful sync time.\n"
+        "You won't get another sync-failure email for 24 hours unless the sync starts working again first.\n"
+    )
+    html_body = _render_html("sync_failure.html", {"error_message": error_message})
+    _send(config, subject, text_body, html_body)
+
+
+def send_sync_recovery_email(config: SMTPConfig, last_error: str | None = None) -> None:
+    subject = "Budget Tracker: sync is working again"
+    text_body = "The SimpleFIN sync just completed successfully. New transactions are being pulled again.\n"
+    if last_error:
+        text_body += f"\nPrevious error: {last_error}\n"
+    html_body = _render_html("sync_recovery.html", {"last_error": last_error})
+    _send(config, subject, text_body, html_body)
+
+
 def send_alert_email(config: SMTPConfig, crossing: ThresholdCrossing) -> None:
     subject = f"Budget alert: {crossing.category_name} at {crossing.threshold_pct}%"
     text_body = (
