@@ -113,5 +113,5 @@ def test_digest_job_sends_digest_with_current_budget_periods(mock_send_digest):
     digest_job(settings, engine)
 
     mock_send_digest.assert_called_once()
-    periods_arg = mock_send_digest.call_args[0][1]
-    assert any(p.category_name == "Groceries" for p in periods_arg)
+    content_arg = mock_send_digest.call_args[0][1]
+    assert any(p.category_name == "Groceries" for p in content_arg.periods)

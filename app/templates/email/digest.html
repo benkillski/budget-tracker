@@ -1,31 +1,66 @@
 {% extends "email/base.html" %}
-{% block header %}Budget digest{% endblock %}
+{% block header %}Budget digest{% if c.month_label %} &mdash; {{ c.month_label }}{% endif %}{% endblock %}
 {% block body %}
-<p>Here's your current spending snapshot by category:</p>
-<table style="width:100%;border-collapse:collapse;margin-top:1rem;">
-    <thead>
-        <tr style="border-bottom:2px solid #e2e8f0;">
-            <th style="padding:0.5rem 0;text-align:left;color:#64748b;font-weight:600;font-size:0.875rem;">Category</th>
-            <th style="padding:0.5rem 0;text-align:right;color:#64748b;font-weight:600;font-size:0.875rem;">Spent / Limit</th>
-            <th style="padding:0.5rem 0;text-align:right;color:#64748b;font-weight:600;font-size:0.875rem;">%</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for p in periods if p.limit_cents > 0 %}
-        {% set over = p.pct_used >= 100 %}
-        {% set warn = p.pct_used >= 80 and not over %}
+
+{# ========== Summary tiles ========== #}
+<table style="width:100%;border-collapse:collapse;margin-bottom:1.25rem;">
+    <tr>
+        <td style="padding:0.6rem;background:#f8fafc;border-radius:6px;width:33%;vertical-align:top;">
+            <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">Income</div>
+            <div style="font-size:1.125rem;font-weight:700;color:#0f172a;margin-top:0.25rem;">
+                {{ format_money(c.total_income_cents) }}
+            </div>
+        </td>
+        <td style="width:0.5rem;"></td>
+        <td style="padding:0.6rem;background:#f8fafc;border-radius:6px;width:33%;vertical-align:top;">
+            <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">Spent</div>
+            <div style="font-size:1.125rem;font-weight:700;color:#0f172a;margin-top:0.25rem;">
+                {{ format_money(c.total_spent_cents) }}
+            </div>
+        </td>
+        <td style="width:0.5rem;"></td>
+        <td style="padding:0.6rem;background:#f8fafc;border-radius:6px;width:33%;vertical-align:top;">
+            <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">Net</div>
+            <div style="font-size:1.125rem;font-weight:700;color:{% if c.net_cents >= 0 %}#16a34a{% else %}#dc2626{% endif %};margin-top:0.25rem;">
+                {{ format_money(c.net_cents) }}
+            </div>
+        </td>
+    </tr>
+</table>
+
+{% if c.uncategorized_count %}
+<p style="padding:0.6rem 0.8rem;background:#fef3c7;border-left:4px solid #d97706;border-radius:4px;margin:0 0 1.25rem;color:#78350f;">
+    <strong>{{ c.uncategorized_count }}</strong> transaction{{ "s" if c.uncategorized_count != 1 }} this month {{ "are" if c.uncategorized_count != 1 else "is" }} still uncategorized.
+</p>
+{% endif %}
+
+{# ========== Section renderer ========== #}
+{% macro render_section(title, rows, accent) %}
+    {% if rows %}
+    <h2 style="color:{{ accent }};font-size:1rem;margin:1.25rem 0 0.5rem;border-bottom:1px solid #e2e8f0;padding-bottom:0.25rem;">
+        {{ title }} <span style="color:#94a3b8;font-weight:400;">({{ rows | length }})</span>
+    </h2>
+    <table style="width:100%;border-collapse:collapse;">
+    {% for p in rows %}
         <tr style="border-bottom:1px solid #f1f5f9;">
-            <td style="padding:0.5rem 0;"><strong>{{ p.category_name }}</strong></td>
-            <td style="padding:0.5rem 0;text-align:right;color:#374151;">
+            <td style="padding:0.4rem 0;"><strong>{{ p.category_name }}</strong></td>
+            <td style="padding:0.4rem 0;text-align:right;color:#374151;">
                 {{ format_money(p.spent_cents) }} / {{ format_money(p.limit_cents) }}
             </td>
-            <td style="padding:0.5rem 0;text-align:right;font-weight:600;color:{% if over %}#dc2626{% elif warn %}#d97706{% else %}#16a34a{% endif %};">
+            <td style="padding:0.4rem 0;text-align:right;font-weight:700;color:{{ accent }};width:4rem;">
                 {{ "%.0f"|format(p.pct_used) }}%
             </td>
         </tr>
-    {% else %}
-        <tr><td colspan="3" style="padding:0.5rem 0;color:#94a3b8;">No budgeted categories yet.</td></tr>
     {% endfor %}
-    </tbody>
-</table>
+    </table>
+    {% endif %}
+{% endmacro %}
+
+{{ render_section("Over budget", c.over_budget, "#dc2626") }}
+{{ render_section("Approaching limit", c.approaching, "#d97706") }}
+{{ render_section("On track", c.on_track, "#16a34a") }}
+
+{% if not c.budgeted %}
+<p style="color:#94a3b8;">No budgeted categories yet.</p>
+{% endif %}
 {% endblock %}
