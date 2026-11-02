@@ -1,0 +1,22 @@
+{% extends "email/base.html" %}
+{% block header %}Sync failed{% endblock %}
+{% block body %}
+<p>The scheduled SimpleFIN sync failed. New transactions have not been pulled since this error occurred.</p>
+
+<div style="padding:0.75rem 1rem;background:#fef2f2;border-left:4px solid #dc2626;border-radius:4px;margin:1rem 0;">
+    <div style="color:#64748b;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Error</div>
+    <div style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.875rem;color:#7f1d1d;white-space:pre-wrap;word-break:break-word;">
+        {{ error_message }}
+    </div>
+</div>
+
+<p style="color:#64748b;font-size:0.875rem;">
+    Common causes: SimpleFIN broker timeout (bump <code>SIMPLEFIN_TIMEOUT_SECONDS</code> in <code>.env</code>),
+    expired access URL (reconfigure <code>SIMPLEFIN_ACCESS_URL</code>), or SMTP downstream.
+    Try <strong>Sync now</strong> on the Settings page to diagnose, or check the dashboard for the last successful sync time.
+</p>
+
+<p style="color:#94a3b8;font-size:0.8125rem;margin-top:1.25rem;">
+    You won't get another sync-failure email for 24 hours unless the sync starts working again first.
+</p>
+{% endblock %}
