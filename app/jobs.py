@@ -1,9 +1,11 @@
-from sqlmodel import Session
+from datetime import date
 
-from app.budget_calc import compute_budget_period
+from sqlmodel import Session, func, select
+
+from app.budget_calc import compute_budget_period, compute_income_period, month_bounds
 from app.config import Settings
-from app.models import AlertLog, SyncStatus
-from app.notifications import SMTPConfig, send_alert_email, send_digest_email
+from app.models import AlertLog, SyncStatus, Transaction
+from app.notifications import DigestContent, SMTPConfig, send_alert_email, send_digest_email
 from app.simplefin_client import SimpleFINClient
 from app.sync_service import run_sync
 from app.timeutil import utc_now
@@ -65,4 +67,19 @@ def digest_job(settings: Settings, engine) -> None:
     now = utc_now()
     with Session(engine) as session:
         periods = compute_budget_period(session, now.year, now.month)
-        send_digest_email(_smtp_config(settings), periods)
+        incomes = compute_income_period(session, now.year, now.month)
+        start, end = month_bounds(now.year, now.month)
+        uncategorized_count = session.exec(
+            select(func.count()).select_from(Transaction).where(
+                Transaction.posted_at >= start,
+                Transaction.posted_at <= end,
+                Transaction.category_id.is_(None),
+            )
+        ).one()
+        content = DigestContent(
+            periods=periods,
+            incomes=incomes,
+            uncategorized_count=uncategorized_count,
+            month_label=date(now.year, now.month, 1).strftime("%B %Y"),
+        )
+        send_digest_email(_smtp_config(settings), content)

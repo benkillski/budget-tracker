@@ -9,7 +9,7 @@
   "id": "T-009",
   "order": 90,
   "phase": "post-mvp",
-  "status": "open",
+  "status": "inprogress",
   "title": "Enriched digest email content",
   "type": "feature"
 }
