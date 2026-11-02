@@ -2,7 +2,29 @@
 {% block content %}
 <h1>Transactions</h1>
 
+<nav aria-label="Month navigation" style="display:flex;align-items:center;gap:1rem;margin:1rem 0;flex-wrap:wrap">
+    {% if not show_all %}
+    <a href="/transactions?year={{ prev_year }}&month={{ prev_month }}" role="button" class="secondary outline">&larr; Prev</a>
+    <h3 style="margin:0;flex:1;text-align:center">{{ month_label }} <small class="muted">({{ transaction_count }})</small></h3>
+    <a href="/transactions?year={{ next_year }}&month={{ next_month }}" role="button" class="secondary outline">Next &rarr;</a>
+    {% if not is_current_month %}
+    <a href="/transactions" role="button" class="outline">Today</a>
+    {% endif %}
+    <a href="/transactions?show_all=true" role="button" class="outline">Show all</a>
+    {% else %}
+    <h3 style="margin:0;flex:1">{{ month_label }} <small class="muted">({{ transaction_count }})</small></h3>
+    <a href="/transactions" role="button" class="outline">Back to this month</a>
+    {% endif %}
+</nav>
+
 <form method="get" action="/transactions" class="inline-form" style="margin:1rem 0">
+    {# Preserve month navigation when filters change #}
+    {% if show_all %}
+    <input type="hidden" name="show_all" value="true">
+    {% else %}
+    <input type="hidden" name="year" value="{{ selected_year }}">
+    <input type="hidden" name="month" value="{{ selected_month }}">
+    {% endif %}
     <label>
         Account:
         <select name="account_id" onchange="this.form.submit()">

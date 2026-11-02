@@ -49,7 +49,7 @@ class CategorySpend:
         return "pending"
 
 
-def _month_bounds(year: int, month: int) -> tuple[datetime, datetime]:
+def month_bounds(year: int, month: int) -> tuple[datetime, datetime]:
     start = datetime(year, month, 1)
     last_day = monthrange(year, month)[1]
     end = datetime(year, month, last_day, 23, 59, 59)
@@ -57,7 +57,7 @@ def _month_bounds(year: int, month: int) -> tuple[datetime, datetime]:
 
 
 def compute_budget_period(session: Session, year: int, month: int) -> list[CategorySpend]:
-    start, end = _month_bounds(year, month)
+    start, end = month_bounds(year, month)
 
     categories = session.exec(select(Category).where(Category.is_income == False)).all()  # noqa: E712
 
@@ -106,7 +106,7 @@ class CategoryIncome:
 
 
 def compute_income_period(session: Session, year: int, month: int) -> list[CategoryIncome]:
-    start, end = _month_bounds(year, month)
+    start, end = month_bounds(year, month)
 
     categories = session.exec(select(Category).where(Category.is_income == True)).all()  # noqa: E712
 
