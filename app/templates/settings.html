@@ -25,6 +25,22 @@
     <header><strong>Notifications</strong></header>
     <p>Warning threshold: {{ warning_threshold_pct }}% &middot; Alert threshold: {{ alert_threshold_pct }}% &middot; Digest: {{ digest_frequency }}</p>
     <small class="muted">Edit these via the .env file and redeploy.</small>
+
+    {% if test_digest_result == "ok" %}
+    <p class="flash ok">Test digest sent to {{ smtp_to }}.</p>
+    {% elif test_digest_result == "error" %}
+    <p class="flash error">Test digest failed: {{ test_digest_message or "unknown error" }}</p>
+    {% endif %}
+
+    {% if smtp_configured %}
+    <form method="post" action="/settings/send-test-digest" class="inline-form" style="margin-top:0.5rem"
+          onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Sending...';">
+        <button type="submit">Send test digest</button>
+        <small class="muted">Fires the digest job once, right now &mdash; verifies SMTP and lets you preview the template.</small>
+    </form>
+    {% else %}
+    <p><small class="muted">SMTP not configured &mdash; set SMTP_HOST, SMTP_TO, and credentials in .env to enable test emails.</small></p>
+    {% endif %}
 </article>
 
 <article>

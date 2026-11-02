@@ -270,6 +270,68 @@ def test_sync_now_surfaces_error_message_on_failure(client, monkeypatch):
     assert "broker%20unreachable" in response.headers["location"]
 
 
+def test_send_test_digest_requires_smtp_configured(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "smtp_host", "")
+    monkeypatch.setattr(app_settings, "smtp_to", "user@example.com")
+
+    response = client.post("/settings/send-test-digest", follow_redirects=False)
+    assert response.status_code == 303
+    assert "test_digest=error" in response.headers["location"]
+    assert "not%20configured" in response.headers["location"].lower()
+
+
+def test_send_test_digest_requires_smtp_to_configured(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "smtp_host", "smtp.example.com")
+    monkeypatch.setattr(app_settings, "smtp_to", "")
+
+    response = client.post("/settings/send-test-digest", follow_redirects=False)
+    assert response.status_code == 303
+    assert "test_digest=error" in response.headers["location"]
+
+
+def test_send_test_digest_redirects_ok_on_success(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "smtp_host", "smtp.example.com")
+    monkeypatch.setattr(app_settings, "smtp_to", "user@example.com")
+
+    with patch("app.routers.settings.digest_job") as mock_job:
+        response = client.post("/settings/send-test-digest", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/settings?test_digest=ok"
+    mock_job.assert_called_once()
+
+
+def test_send_test_digest_surfaces_error_message_on_failure(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "smtp_host", "smtp.example.com")
+    monkeypatch.setattr(app_settings, "smtp_to", "user@example.com")
+
+    with patch("app.routers.settings.digest_job", side_effect=RuntimeError("SMTP auth failed")):
+        response = client.post("/settings/send-test-digest", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert "test_digest=error" in response.headers["location"]
+    assert "SMTP%20auth%20failed" in response.headers["location"]
+
+
+def test_settings_page_renders_test_digest_banner(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "smtp_host", "smtp.example.com")
+    monkeypatch.setattr(app_settings, "smtp_to", "user@example.com")
+
+    ok_response = client.get("/settings?test_digest=ok")
+    assert ok_response.status_code == 200
+    assert "Test digest sent" in ok_response.text
+    assert "user@example.com" in ok_response.text
+
+    error_response = client.get("/settings?test_digest=error&test_digest_msg=SMTP+down")
+    assert "Test digest failed" in error_response.text
+    assert "SMTP down" in error_response.text
+
+
 def test_settings_page_renders_sync_banner(client, monkeypatch):
     from app.config import settings as app_settings
     monkeypatch.setattr(app_settings, "simplefin_access_url", "https://user:pass@bridge.example.com/sf")
