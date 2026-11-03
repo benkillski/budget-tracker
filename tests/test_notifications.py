@@ -1,7 +1,14 @@
 from unittest.mock import MagicMock, patch
 
 from app.budget_calc import CategoryIncome, CategorySpend
-from app.notifications import DigestContent, SMTPConfig, send_alert_email, send_digest_email
+from app.notifications import (
+    AlertContext,
+    DigestContent,
+    RecentTransaction,
+    SMTPConfig,
+    send_alert_email,
+    send_digest_email,
+)
 from app.sync_service import ThresholdCrossing
 
 CONFIG = SMTPConfig(
@@ -22,16 +29,23 @@ def _html_body(message) -> str:
     return part.get_content() if part is not None else ""
 
 
+def _alert_context(**overrides) -> AlertContext:
+    crossing = overrides.pop(
+        "crossing",
+        ThresholdCrossing(
+            category_id=1, category_name="Groceries", threshold_pct=100,
+            spent_cents=3500, limit_cents=3000,
+        ),
+    )
+    return AlertContext(crossing=crossing, **overrides)
+
+
 @patch("app.notifications.smtplib.SMTP")
 def test_send_alert_email_logs_in_and_sends_message(mock_smtp_class):
     mock_smtp = MagicMock()
     mock_smtp_class.return_value.__enter__.return_value = mock_smtp
-    crossing = ThresholdCrossing(
-        category_id=1, category_name="Groceries", threshold_pct=100,
-        spent_cents=3500, limit_cents=3000,
-    )
 
-    send_alert_email(CONFIG, crossing)
+    send_alert_email(CONFIG, _alert_context())
 
     mock_smtp.login.assert_called_once_with("user@example.com", "secret")
     sent_message = mock_smtp.send_message.call_args[0][0]
@@ -118,12 +132,8 @@ def test_send_digest_email_subject_omits_over_count_when_none(mock_smtp_class):
 def test_send_alert_email_includes_html_alternative(mock_smtp_class):
     mock_smtp = MagicMock()
     mock_smtp_class.return_value.__enter__.return_value = mock_smtp
-    crossing = ThresholdCrossing(
-        category_id=1, category_name="Groceries", threshold_pct=100,
-        spent_cents=3500, limit_cents=3000,
-    )
 
-    send_alert_email(CONFIG, crossing)
+    send_alert_email(CONFIG, _alert_context())
 
     sent_message = mock_smtp.send_message.call_args[0][0]
     html = _html_body(sent_message)
@@ -134,6 +144,56 @@ def test_send_alert_email_includes_html_alternative(mock_smtp_class):
     assert "$5.00" in html
     # Inline styles present (we use color on the % number).
     assert "color:#dc2626" in html
+
+
+@patch("app.notifications.smtplib.SMTP")
+def test_send_alert_email_includes_recent_transactions(mock_smtp_class):
+    mock_smtp = MagicMock()
+    mock_smtp_class.return_value.__enter__.return_value = mock_smtp
+    context = _alert_context(
+        recent_transactions=[
+            RecentTransaction(posted_at_label="2026-11-02", payee="KROGER #4567", amount_cents=-8500),
+            RecentTransaction(posted_at_label="2026-11-01", payee="ALDI", amount_cents=-4200),
+            RecentTransaction(posted_at_label="2026-10-30", payee="WHOLE FOODS", amount_cents=-11000),
+        ],
+    )
+
+    send_alert_email(CONFIG, context)
+
+    sent_message = mock_smtp.send_message.call_args[0][0]
+    text = _text_body(sent_message)
+    assert "KROGER #4567" in text
+    assert "ALDI" in text
+    assert "WHOLE FOODS" in text
+    assert "$85.00" in text
+    html = _html_body(sent_message)
+    assert "KROGER #4567" in html
+    assert "2026-11-02" in html
+
+
+@patch("app.notifications.smtplib.SMTP")
+def test_send_alert_email_projects_and_surfaces_days_remaining(mock_smtp_class):
+    mock_smtp = MagicMock()
+    mock_smtp_class.return_value.__enter__.return_value = mock_smtp
+    # Day 10 of a 30-day month, spent $100 on a $300 limit — projected $300
+    # (100% exactly). Days remaining = 20.
+    crossing = ThresholdCrossing(
+        category_id=1, category_name="Groceries", threshold_pct=80,
+        spent_cents=10000, limit_cents=30000,
+    )
+    context = _alert_context(crossing=crossing, days_elapsed=10, days_in_month=30)
+
+    send_alert_email(CONFIG, context)
+
+    sent_message = mock_smtp.send_message.call_args[0][0]
+    text = _text_body(sent_message)
+    assert "20 days left" in text
+    assert "$300.00" in text  # projected finish
+    assert "100%" in text  # projected pct
+
+    html = _html_body(sent_message)
+    assert "20 day" in html
+    assert "$300.00" in html
 
 
 @patch("app.notifications.smtplib.SMTP")

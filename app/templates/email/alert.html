@@ -1,25 +1,64 @@
 {% extends "email/base.html" %}
-{% block header %}Budget alert &mdash; {{ crossing.category_name }}{% endblock %}
+{% block header %}Budget alert &mdash; {{ c.crossing.category_name }}{% endblock %}
 {% block body %}
 <p>
-    <strong>{{ crossing.category_name }}</strong> has reached
-    <strong style="color:#dc2626;">{{ crossing.threshold_pct }}%</strong>
+    <strong>{{ c.crossing.category_name }}</strong> has reached
+    <strong style="color:#dc2626;">{{ c.crossing.threshold_pct }}%</strong>
     of its monthly budget.
 </p>
+
 <table style="width:100%;border-collapse:collapse;margin-top:1rem;">
     <tr>
         <td style="padding:0.5rem 0;color:#64748b;">Spent</td>
-        <td style="padding:0.5rem 0;text-align:right;font-weight:600;">{{ format_money(crossing.spent_cents) }}</td>
+        <td style="padding:0.5rem 0;text-align:right;font-weight:600;">{{ format_money(c.crossing.spent_cents) }}</td>
     </tr>
     <tr style="border-top:1px solid #f1f5f9;">
         <td style="padding:0.5rem 0;color:#64748b;">Monthly limit</td>
-        <td style="padding:0.5rem 0;text-align:right;font-weight:600;">{{ format_money(crossing.limit_cents) }}</td>
+        <td style="padding:0.5rem 0;text-align:right;font-weight:600;">{{ format_money(c.crossing.limit_cents) }}</td>
     </tr>
+    {% if c.over_by_cents > 0 %}
     <tr style="border-top:1px solid #f1f5f9;">
         <td style="padding:0.5rem 0;color:#64748b;">Over by</td>
         <td style="padding:0.5rem 0;text-align:right;font-weight:600;color:#dc2626;">
-            {{ format_money(crossing.spent_cents - crossing.limit_cents) }}
+            {{ format_money(c.over_by_cents) }}
         </td>
     </tr>
+    {% endif %}
 </table>
+
+{# ========== Projection ========== #}
+<div style="padding:0.75rem 1rem;background:#f8fafc;border-radius:6px;margin:1rem 0;">
+    {% if c.projected_cents and c.days_elapsed > 0 %}
+    <div style="margin-bottom:0.25rem;">
+        At this pace, you'll finish the month at
+        <strong style="color:{% if c.projected_pct >= 100 %}#dc2626{% elif c.projected_pct >= 80 %}#d97706{% else %}#16a34a{% endif %};">
+            {{ format_money(c.projected_cents) }}
+            ({{ "%.0f"|format(c.projected_pct) }}%)
+        </strong>.
+    </div>
+    {% endif %}
+    <div style="color:#64748b;font-size:0.875rem;">
+        {{ c.days_remaining }} day{{ "s" if c.days_remaining != 1 }} left in the budget period.
+    </div>
+</div>
+
+{# ========== Recent transactions ========== #}
+{% if c.recent_transactions %}
+<h2 style="color:#0f172a;font-size:1rem;margin:1.25rem 0 0.5rem;border-bottom:1px solid #e2e8f0;padding-bottom:0.25rem;">
+    Recent transactions this month
+</h2>
+<table style="width:100%;border-collapse:collapse;">
+    {% for t in c.recent_transactions %}
+    <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:0.4rem 0;color:#64748b;width:6rem;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.875rem;">
+            {{ t.posted_at_label }}
+        </td>
+        <td style="padding:0.4rem 0;">{{ t.payee }}</td>
+        <td style="padding:0.4rem 0;text-align:right;font-weight:600;color:#374151;width:6rem;">
+            {{ format_money(t.amount_cents) }}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
 {% endblock %}

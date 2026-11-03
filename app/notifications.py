@@ -28,6 +28,48 @@ class SMTPConfig:
 
 
 @dataclass
+class RecentTransaction:
+    """Slim snapshot of a transaction for display in alert emails. Carries
+    just what the template needs so we don't drag ORM state into the email path."""
+
+    posted_at_label: str  # "2026-11-02"
+    payee: str
+    amount_cents: int
+
+
+@dataclass
+class AlertContext:
+    """Everything an enriched alert email needs: the crossing, recent
+    transactions that pushed into the threshold, and projection math."""
+
+    crossing: ThresholdCrossing
+    recent_transactions: list[RecentTransaction] = field(default_factory=list)
+    days_elapsed: int = 1
+    days_in_month: int = 30
+
+    @property
+    def days_remaining(self) -> int:
+        return max(0, self.days_in_month - self.days_elapsed)
+
+    @property
+    def projected_cents(self) -> int:
+        """Linear extrapolation of current pace to end of month."""
+        if self.days_elapsed <= 0:
+            return self.crossing.spent_cents
+        return int(self.crossing.spent_cents / self.days_elapsed * self.days_in_month)
+
+    @property
+    def projected_pct(self) -> float:
+        if self.crossing.limit_cents <= 0:
+            return 0.0
+        return self.projected_cents / self.crossing.limit_cents * 100
+
+    @property
+    def over_by_cents(self) -> int:
+        return self.crossing.spent_cents - self.crossing.limit_cents
+
+
+@dataclass
 class DigestContent:
     """Snapshot of a month's budget state assembled by digest_job and consumed
     by send_digest_email. Carries both the raw periods list and summary stats
@@ -127,15 +169,40 @@ def send_sync_recovery_email(config: SMTPConfig, last_error: str | None = None) 
     _send(config, subject, text_body, html_body)
 
 
-def send_alert_email(config: SMTPConfig, crossing: ThresholdCrossing) -> None:
+def send_alert_email(config: SMTPConfig, context: AlertContext) -> None:
+    crossing = context.crossing
     subject = f"Budget alert: {crossing.category_name} at {crossing.threshold_pct}%"
-    text_body = (
-        f"{crossing.category_name} has reached {crossing.threshold_pct}% of its monthly budget.\n\n"
-        f"Spent: {format_money(crossing.spent_cents)}\n"
-        f"Limit: {format_money(crossing.limit_cents)}\n"
-    )
-    html_body = _render_html("alert.html", {"crossing": crossing})
+    text_body = _render_alert_text(context)
+    html_body = _render_html("alert.html", {"c": context})
     _send(config, subject, text_body, html_body)
+
+
+def _render_alert_text(c: AlertContext) -> str:
+    """Plain text fallback for alert emails — same information as the HTML."""
+    crossing = c.crossing
+    lines = [
+        f"{crossing.category_name} has reached {crossing.threshold_pct}% of its monthly budget.",
+        "",
+        f"Spent:   {format_money(crossing.spent_cents)}",
+        f"Limit:   {format_money(crossing.limit_cents)}",
+    ]
+    if c.over_by_cents > 0:
+        lines.append(f"Over by: {format_money(c.over_by_cents)}")
+    lines.append("")
+    if c.projected_cents and c.days_elapsed > 0:
+        lines.append(
+            f"At this pace, you'll finish the month at {format_money(c.projected_cents)} "
+            f"({c.projected_pct:.0f}%)."
+        )
+    lines.append(f"{c.days_remaining} day{'s' if c.days_remaining != 1 else ''} left in the budget period.")
+
+    if c.recent_transactions:
+        lines.append("")
+        lines.append("Recent transactions this month:")
+        for t in c.recent_transactions:
+            lines.append(f"  {t.posted_at_label}  {t.payee} — {format_money(t.amount_cents)}")
+
+    return "\n".join(lines) + "\n"
 
 
 def send_digest_email(config: SMTPConfig, content: DigestContent) -> None:
