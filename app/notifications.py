@@ -70,6 +70,89 @@ class AlertContext:
 
 
 @dataclass
+class MonthEndSummary:
+    """Final recap of a closed month: assembled on day 5 (or on demand) and
+    consumed by send_month_end_summary_email. Mirrors DigestContent's grouping
+    (over / approaching / on-track) but adds end-of-month-only highlights:
+    biggest category, biggest overage, and fixed bills that didn't post."""
+
+    year: int
+    month: int
+    periods: list[CategorySpend]
+    incomes: list[CategoryIncome] = field(default_factory=list)
+    uncategorized_count: int = 0
+    month_label: str = ""
+
+    @property
+    def total_spent_cents(self) -> int:
+        return sum(p.spent_cents for p in self.periods)
+
+    @property
+    def total_income_cents(self) -> int:
+        return sum(i.received_cents for i in self.incomes)
+
+    @property
+    def net_cents(self) -> int:
+        return self.total_income_cents - self.total_spent_cents
+
+    @property
+    def budgeted(self) -> list[CategorySpend]:
+        return [p for p in self.periods if p.limit_cents > 0]
+
+    @property
+    def over_budget(self) -> list[CategorySpend]:
+        return sorted(
+            (p for p in self.budgeted if p.pct_used >= 100),
+            key=lambda p: p.pct_used,
+            reverse=True,
+        )
+
+    @property
+    def approaching(self) -> list[CategorySpend]:
+        return sorted(
+            (p for p in self.budgeted if 80 <= p.pct_used < 100),
+            key=lambda p: p.pct_used,
+            reverse=True,
+        )
+
+    @property
+    def on_track(self) -> list[CategorySpend]:
+        return sorted(
+            (p for p in self.budgeted if p.pct_used < 80),
+            key=lambda p: p.category_name,
+        )
+
+    @property
+    def over_count(self) -> int:
+        return len(self.over_budget)
+
+    @property
+    def biggest_category(self) -> CategorySpend | None:
+        """Category with the most spend this month, or None if nothing spent."""
+        spenders = [p for p in self.periods if p.spent_cents > 0]
+        if not spenders:
+            return None
+        return max(spenders, key=lambda p: p.spent_cents)
+
+    @property
+    def biggest_overage(self) -> CategorySpend | None:
+        """Budgeted category furthest over its limit by dollar amount."""
+        overages = [p for p in self.budgeted if p.spent_cents > p.limit_cents]
+        if not overages:
+            return None
+        return max(overages, key=lambda p: p.spent_cents - p.limit_cents)
+
+    @property
+    def missed_fixed_bills(self) -> list[CategorySpend]:
+        """Fixed-cost categories with a limit that saw no spend — possibly a
+        missed bill. Ordered by name for a stable email."""
+        return sorted(
+            (p for p in self.periods if p.is_fixed and p.limit_cents > 0 and p.spent_cents == 0),
+            key=lambda p: p.category_name,
+        )
+
+
+@dataclass
 class DigestContent:
     """Snapshot of a month's budget state assembled by digest_job and consumed
     by send_digest_email. Carries both the raw periods list and summary stats
@@ -203,6 +286,80 @@ def _render_alert_text(c: AlertContext) -> str:
             lines.append(f"  {t.posted_at_label}  {t.payee} — {format_money(t.amount_cents)}")
 
     return "\n".join(lines) + "\n"
+
+
+def send_month_end_summary_email(
+    config: SMTPConfig, summary: MonthEndSummary, test: bool = False
+) -> None:
+    """Send the day-5 recap of a closed month. `test=True` prefixes the subject
+    with [TEST] so it's obvious in the inbox when previewed from Settings."""
+    sign = "+" if summary.net_cents >= 0 else ""
+    label = summary.month_label or f"{summary.year}-{summary.month:02d}"
+    prefix = "[TEST] " if test else ""
+    subject = f"{prefix}Budget recap: {label} — net {sign}{format_money(summary.net_cents)}"
+
+    html_body = _render_html("month_end_summary.html", {"c": summary})
+    text_body = _render_month_end_summary_text(summary)
+    _send(config, subject, text_body, html_body)
+
+
+def _render_month_end_summary_text(c: MonthEndSummary) -> str:
+    """Plain text fallback — same information as the HTML month-end summary."""
+    lines = []
+    if c.month_label:
+        lines.append(c.month_label)
+        lines.append("=" * len(c.month_label))
+        lines.append("")
+
+    lines.append("Summary")
+    lines.append(f"  Income: {format_money(c.total_income_cents)}")
+    lines.append(f"  Spent:  {format_money(c.total_spent_cents)}")
+    lines.append(f"  Net:    {format_money(c.net_cents)}")
+    if c.uncategorized_count:
+        lines.append(f"  Uncategorized transactions: {c.uncategorized_count}")
+    lines.append("")
+
+    # Highlights block — only meaningful on a closed month.
+    if c.biggest_category is not None:
+        lines.append(
+            f"Biggest category: {c.biggest_category.category_name} "
+            f"({format_money(c.biggest_category.spent_cents)})"
+        )
+    if c.biggest_overage is not None:
+        over_by = c.biggest_overage.spent_cents - c.biggest_overage.limit_cents
+        lines.append(
+            f"Biggest overage: {c.biggest_overage.category_name} "
+            f"— over by {format_money(over_by)}"
+        )
+    if c.missed_fixed_bills:
+        names = ", ".join(p.category_name for p in c.missed_fixed_bills)
+        lines.append(f"Fixed bills with no activity: {names}")
+    if c.biggest_category is not None or c.biggest_overage is not None or c.missed_fixed_bills:
+        lines.append("")
+
+    def _fmt(p: CategorySpend) -> str:
+        return (
+            f"  {p.category_name}: {format_money(p.spent_cents)} / "
+            f"{format_money(p.limit_cents)} ({p.pct_used:.0f}%)"
+        )
+
+    if c.over_budget:
+        lines.append(f"Over budget ({len(c.over_budget)})")
+        lines.extend(_fmt(p) for p in c.over_budget)
+        lines.append("")
+    if c.approaching:
+        lines.append(f"Approaching limit ({len(c.approaching)})")
+        lines.extend(_fmt(p) for p in c.approaching)
+        lines.append("")
+    if c.on_track:
+        lines.append(f"On track ({len(c.on_track)})")
+        lines.extend(_fmt(p) for p in c.on_track)
+        lines.append("")
+
+    if not c.budgeted:
+        lines.append("No budgeted categories.")
+
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def send_digest_email(config: SMTPConfig, content: DigestContent) -> None:

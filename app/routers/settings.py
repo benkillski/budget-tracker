@@ -6,11 +6,14 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
+from app.budget_calc import previous_month
 from app.config import settings as app_settings
 from app.db import engine, get_session
-from app.jobs import daily_sync_job, digest_job
+from app.jobs import build_month_end_summary, daily_sync_job, digest_job
 from app.models import AlertLog, Category, Rule, Transaction
 from app.money import to_cents
+from app.notifications import send_month_end_summary_email
+from app.timeutil import utc_now
 
 router = APIRouter(prefix="/settings")
 templates = Jinja2Templates(directory="app/templates")
@@ -23,6 +26,8 @@ def show_settings(
     msg: str | None = None,
     test_digest: str | None = None,
     test_digest_msg: str | None = None,
+    test_recap: str | None = None,
+    test_recap_msg: str | None = None,
     session: Session = Depends(get_session),
 ):
     categories = session.exec(select(Category).order_by(Category.name)).all()
@@ -46,6 +51,9 @@ def show_settings(
             "sync_message": msg,
             "test_digest_result": test_digest,
             "test_digest_message": test_digest_msg,
+            "test_recap_result": test_recap,
+            "test_recap_message": test_recap_msg,
+            "month_end_summary_day": app_settings.month_end_summary_day,
         },
     )
 
@@ -82,6 +90,29 @@ def send_test_digest():
             status_code=303,
         )
     return RedirectResponse("/settings?test_digest=ok", status_code=303)
+
+
+@router.post("/send-test-month-end-summary")
+def send_test_month_end_summary(session: Session = Depends(get_session)):
+    """Build the previous month's summary with real data and send it right
+    now, bypassing the dedupe log so the preview can run any day."""
+    if not app_settings.smtp_host or not app_settings.smtp_to:
+        return RedirectResponse(
+            "/settings?test_recap=error&test_recap_msg=" + quote("SMTP is not configured."),
+            status_code=303,
+        )
+    try:
+        now = utc_now()
+        year, month = previous_month(now.year, now.month)
+        summary = build_month_end_summary(session, year, month)
+        from app.jobs import _smtp_config
+        send_month_end_summary_email(_smtp_config(app_settings), summary, test=True)
+    except Exception as exc:  # noqa: BLE001
+        return RedirectResponse(
+            "/settings?test_recap=error&test_recap_msg=" + quote(str(exc)[:200]),
+            status_code=303,
+        )
+    return RedirectResponse("/settings?test_recap=ok", status_code=303)
 
 
 def _parse_parent_id(session: Session, raw: str, self_id: int | None) -> int | None:

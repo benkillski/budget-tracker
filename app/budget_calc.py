@@ -56,6 +56,14 @@ def month_bounds(year: int, month: int) -> tuple[datetime, datetime]:
     return start, end
 
 
+def previous_month(year: int, month: int) -> tuple[int, int]:
+    """Return the (year, month) immediately before the one given, wrapping
+    across year boundaries. previous_month(2026, 1) -> (2025, 12)."""
+    if month == 1:
+        return year - 1, 12
+    return year, month - 1
+
+
 def compute_budget_period(session: Session, year: int, month: int) -> list[CategorySpend]:
     start, end = month_bounds(year, month)
 

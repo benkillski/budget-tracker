@@ -32,11 +32,22 @@
     <p class="flash error">Test digest failed: {{ test_digest_message or "unknown error" }}</p>
     {% endif %}
 
+    {% if test_recap_result == "ok" %}
+    <p class="flash ok">Test month-end summary sent to {{ smtp_to }}.</p>
+    {% elif test_recap_result == "error" %}
+    <p class="flash error">Test month-end summary failed: {{ test_recap_message or "unknown error" }}</p>
+    {% endif %}
+
     {% if smtp_configured %}
     <form method="post" action="/settings/send-test-digest" class="inline-form" style="margin-top:0.5rem"
           onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Sending...';">
         <button type="submit">Send test digest</button>
         <small class="muted">Fires the digest job once, right now &mdash; verifies SMTP and lets you preview the template.</small>
+    </form>
+    <form method="post" action="/settings/send-test-month-end-summary" class="inline-form" style="margin-top:0.5rem"
+          onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Sending...';">
+        <button type="submit">Send test month-end summary</button>
+        <small class="muted">Sends the previous month's recap right now &mdash; subject gets a [TEST] prefix and the real send still fires on day {{ month_end_summary_day | default(5) }}.</small>
     </form>
     {% else %}
     <p><small class="muted">SMTP not configured &mdash; set SMTP_HOST, SMTP_TO, and credentials in .env to enable test emails.</small></p>

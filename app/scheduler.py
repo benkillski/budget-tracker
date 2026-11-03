@@ -3,7 +3,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from app.config import Settings
-from app.jobs import daily_sync_job, digest_job
+from app.jobs import daily_sync_job, digest_job, month_end_summary_job
 
 
 def create_scheduler(settings: Settings, engine) -> BackgroundScheduler:
@@ -28,6 +28,19 @@ def create_scheduler(settings: Settings, engine) -> BackgroundScheduler:
         trigger=digest_trigger,
         args=[settings, engine],
         id="digest",
+        replace_existing=True,
+    )
+    # Month-end recap: on day N (default 5), 30 min after the sync hour so the
+    # morning's SimpleFIN pull has already run.
+    scheduler.add_job(
+        month_end_summary_job,
+        trigger=CronTrigger(
+            day=settings.month_end_summary_day,
+            hour=settings.sync_hour_utc,
+            minute=30,
+        ),
+        args=[settings, engine],
+        id="month_end_summary",
         replace_existing=True,
     )
     return scheduler

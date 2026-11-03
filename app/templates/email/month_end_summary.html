@@ -1,0 +1,98 @@
+{% extends "email/base.html" %}
+{% block header %}Budget recap{% if c.month_label %} &mdash; {{ c.month_label }}{% endif %}{% endblock %}
+{% block body %}
+
+{# ========== Summary tiles ========== #}
+<table style="width:100%;border-collapse:collapse;margin-bottom:1.25rem;">
+    <tr>
+        <td style="padding:0.6rem;background:#f8fafc;border-radius:6px;width:33%;vertical-align:top;">
+            <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">Income</div>
+            <div style="font-size:1.125rem;font-weight:700;color:#0f172a;margin-top:0.25rem;">
+                {{ format_money(c.total_income_cents) }}
+            </div>
+        </td>
+        <td style="width:0.5rem;"></td>
+        <td style="padding:0.6rem;background:#f8fafc;border-radius:6px;width:33%;vertical-align:top;">
+            <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">Spent</div>
+            <div style="font-size:1.125rem;font-weight:700;color:#0f172a;margin-top:0.25rem;">
+                {{ format_money(c.total_spent_cents) }}
+            </div>
+        </td>
+        <td style="width:0.5rem;"></td>
+        <td style="padding:0.6rem;background:#f8fafc;border-radius:6px;width:33%;vertical-align:top;">
+            <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">Net</div>
+            <div style="font-size:1.125rem;font-weight:700;color:{% if c.net_cents >= 0 %}#16a34a{% else %}#dc2626{% endif %};margin-top:0.25rem;">
+                {{ format_money(c.net_cents) }}
+            </div>
+        </td>
+    </tr>
+</table>
+
+{# ========== Highlights ========== #}
+{% if c.biggest_category or c.biggest_overage or c.missed_fixed_bills %}
+<div style="padding:0.75rem 1rem;background:#f8fafc;border-radius:6px;margin-bottom:1.25rem;">
+    {% if c.biggest_category %}
+    <div style="margin-bottom:0.5rem;">
+        <span style="color:#64748b;">Biggest category:</span>
+        <strong>{{ c.biggest_category.category_name }}</strong>
+        <span style="color:#374151;">({{ format_money(c.biggest_category.spent_cents) }})</span>
+    </div>
+    {% endif %}
+    {% if c.biggest_overage %}
+    <div style="margin-bottom:0.5rem;">
+        <span style="color:#64748b;">Biggest overage:</span>
+        <strong>{{ c.biggest_overage.category_name }}</strong>
+        <span style="color:#dc2626;">
+            — over by {{ format_money(c.biggest_overage.spent_cents - c.biggest_overage.limit_cents) }}
+        </span>
+    </div>
+    {% endif %}
+    {% if c.missed_fixed_bills %}
+    <div style="margin-bottom:0;color:#78350f;">
+        <strong>Fixed bills with no activity</strong>
+        <span style="color:#92400e;">— may be worth checking:</span>
+        <br>
+        <span>
+            {% for p in c.missed_fixed_bills %}{{ p.category_name }}{% if not loop.last %}, {% endif %}{% endfor %}
+        </span>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if c.uncategorized_count %}
+<p style="padding:0.6rem 0.8rem;background:#fef3c7;border-left:4px solid #d97706;border-radius:4px;margin:0 0 1.25rem;color:#78350f;">
+    <strong>{{ c.uncategorized_count }}</strong> transaction{{ "s" if c.uncategorized_count != 1 }} from this month {{ "are" if c.uncategorized_count != 1 else "is" }} still uncategorized.
+</p>
+{% endif %}
+
+{# ========== Section renderer ========== #}
+{% macro render_section(title, rows, accent) %}
+    {% if rows %}
+    <h2 style="color:{{ accent }};font-size:1rem;margin:1.25rem 0 0.5rem;border-bottom:1px solid #e2e8f0;padding-bottom:0.25rem;">
+        {{ title }} <span style="color:#94a3b8;font-weight:400;">({{ rows | length }})</span>
+    </h2>
+    <table style="width:100%;border-collapse:collapse;">
+    {% for p in rows %}
+        <tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:0.4rem 0;"><strong>{{ p.category_name }}</strong></td>
+            <td style="padding:0.4rem 0;text-align:right;color:#374151;">
+                {{ format_money(p.spent_cents) }} / {{ format_money(p.limit_cents) }}
+            </td>
+            <td style="padding:0.4rem 0;text-align:right;font-weight:700;color:{{ accent }};width:4rem;">
+                {{ "%.0f"|format(p.pct_used) }}%
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+    {% endif %}
+{% endmacro %}
+
+{{ render_section("Over budget", c.over_budget, "#dc2626") }}
+{{ render_section("Approaching limit", c.approaching, "#d97706") }}
+{{ render_section("On track", c.on_track, "#16a34a") }}
+
+{% if not c.budgeted %}
+<p style="color:#94a3b8;">No budgeted categories.</p>
+{% endif %}
+{% endblock %}
