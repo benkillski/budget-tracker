@@ -1,0 +1,12 @@
+{
+  "blockedBy": [],
+  "completedDate": null,
+  "createdDate": "2026-11-03",
+  "description": "Add a \"Send test alert\" button to the Settings page, mirroring T-011's \"Send test digest\" button, so alert formatting can be previewed on demand without waiting for a real threshold crossing.\n\n**Why:** Alerts dedupe per (year, month, category, threshold) via AlertLog, and only fire on genuine threshold crossings during sync. There's no way to preview alert formatting (recent transactions table, projection block, days-remaining line from T-013) without either lowering a limit until existing spend crosses it, or waiting for real monthly activity. Early in a month with no activity, neither works.\n\n**Scope:**\n- POST /send-test-alert endpoint in app/routers/settings.py\n- Builds a synthetic AlertContext with a plausible-looking crossing (e.g. Groceries category, 100%, $350 spent / $300 limit) and 3-5 fake RecentTransaction entries dated recently\n- Calls send_alert_email with the real SMTPConfig\n- Returns to Settings with a success/error flash matching the test digest pattern\n- Button sits next to \"Send test digest\" on Settings\n- Subject line should include \"[TEST]\" so it's obvious in the inbox\n\n**Out of scope:** No persistence, no AlertLog write, no interaction with real categories or transactions.",
+  "id": "T-017",
+  "order": 10,
+  "phase": null,
+  "status": "open",
+  "title": "Send test alert button on Settings",
+  "type": "feature"
+}
