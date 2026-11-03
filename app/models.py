@@ -71,3 +71,13 @@ class SyncStatus(SQLModel, table=True):
     # When non-null, we've already emailed about an ongoing failure streak.
     # Used to dedupe sync-failure emails and detect recovery.
     failure_notified_at: Optional[NaiveDatetime] = None
+
+
+class MonthEndSummaryLog(SQLModel, table=True):
+    """One row per (year, month) once the month-end summary email has been
+    sent, so a scheduler restart or manual run on day 5 won't double-send."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    year: int
+    month: int
+    sent_at: NaiveDatetime

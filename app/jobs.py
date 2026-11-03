@@ -4,16 +4,23 @@ from datetime import date, timedelta
 
 from sqlmodel import Session, func, select
 
-from app.budget_calc import compute_budget_period, compute_income_period, month_bounds
+from app.budget_calc import (
+    compute_budget_period,
+    compute_income_period,
+    month_bounds,
+    previous_month,
+)
 from app.config import Settings
-from app.models import AlertLog, SyncStatus, Transaction
+from app.models import AlertLog, MonthEndSummaryLog, SyncStatus, Transaction
 from app.notifications import (
     AlertContext,
     DigestContent,
+    MonthEndSummary,
     RecentTransaction,
     SMTPConfig,
     send_alert_email,
     send_digest_email,
+    send_month_end_summary_email,
     send_sync_failure_email,
     send_sync_recovery_email,
 )
@@ -131,6 +138,54 @@ def daily_sync_job(settings: Settings, engine) -> None:
                 logger.exception("Failed to send sync-recovery email")
         status.failure_notified_at = None
         session.add(status)
+        session.commit()
+
+
+def build_month_end_summary(session, year: int, month: int) -> MonthEndSummary:
+    """Assemble a MonthEndSummary for the given month. Shared by the scheduled
+    job and the 'Send test month-end summary' button on Settings."""
+    periods = compute_budget_period(session, year, month)
+    incomes = compute_income_period(session, year, month)
+    start, end = month_bounds(year, month)
+    uncategorized_count = session.exec(
+        select(func.count()).select_from(Transaction).where(
+            Transaction.posted_at >= start,
+            Transaction.posted_at <= end,
+            Transaction.category_id.is_(None),
+        )
+    ).one()
+    return MonthEndSummary(
+        year=year,
+        month=month,
+        periods=periods,
+        incomes=incomes,
+        uncategorized_count=uncategorized_count,
+        month_label=date(year, month, 1).strftime("%B %Y"),
+    )
+
+
+def month_end_summary_job(settings: Settings, engine) -> None:
+    """Fire on day N (default 5) of each month and recap the preceding month.
+    Dedupes via MonthEndSummaryLog: once a (year, month) row exists, a restart
+    or a manual trigger on the same day won't re-send."""
+    now = utc_now()
+    year, month = previous_month(now.year, now.month)
+    with Session(engine) as session:
+        already_sent = session.exec(
+            select(MonthEndSummaryLog).where(
+                MonthEndSummaryLog.year == year,
+                MonthEndSummaryLog.month == month,
+            )
+        ).first()
+        if already_sent is not None:
+            logger.info("Month-end summary for %d-%02d already sent, skipping", year, month)
+            return
+
+        summary = build_month_end_summary(session, year, month)
+        # Send first, log after success — on SMTP failure, no log row, so the
+        # next run (same day) will retry.
+        send_month_end_summary_email(_smtp_config(settings), summary)
+        session.add(MonthEndSummaryLog(year=year, month=month, sent_at=utc_now()))
         session.commit()
 
 

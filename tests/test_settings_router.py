@@ -345,6 +345,62 @@ def test_settings_page_renders_sync_banner(client, monkeypatch):
     assert "network down" in error_response.text
 
 
+def test_send_test_month_end_summary_requires_smtp_configured(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "smtp_host", "")
+    monkeypatch.setattr(app_settings, "smtp_to", "user@example.com")
+
+    response = client.post("/settings/send-test-month-end-summary", follow_redirects=False)
+    assert response.status_code == 303
+    assert "test_recap=error" in response.headers["location"]
+    assert "not%20configured" in response.headers["location"].lower()
+
+
+def test_send_test_month_end_summary_redirects_ok_on_success(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "smtp_host", "smtp.example.com")
+    monkeypatch.setattr(app_settings, "smtp_to", "user@example.com")
+
+    with patch("app.routers.settings.send_month_end_summary_email") as mock_send:
+        response = client.post("/settings/send-test-month-end-summary", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/settings?test_recap=ok"
+    mock_send.assert_called_once()
+    # Must have fired with test=True so the subject gets the [TEST] prefix.
+    assert mock_send.call_args.kwargs.get("test") is True
+
+
+def test_send_test_month_end_summary_surfaces_error(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "smtp_host", "smtp.example.com")
+    monkeypatch.setattr(app_settings, "smtp_to", "user@example.com")
+
+    with patch(
+        "app.routers.settings.send_month_end_summary_email",
+        side_effect=RuntimeError("SMTP broker refused"),
+    ):
+        response = client.post("/settings/send-test-month-end-summary", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert "test_recap=error" in response.headers["location"]
+    assert "SMTP%20broker%20refused" in response.headers["location"]
+
+
+def test_settings_page_renders_test_recap_banner(client, monkeypatch):
+    from app.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "smtp_host", "smtp.example.com")
+    monkeypatch.setattr(app_settings, "smtp_to", "user@example.com")
+
+    ok_response = client.get("/settings?test_recap=ok")
+    assert ok_response.status_code == 200
+    assert "Test month-end summary sent" in ok_response.text
+
+    error_response = client.get("/settings?test_recap=error&test_recap_msg=SMTP+down")
+    assert "Test month-end summary failed" in error_response.text
+    assert "SMTP down" in error_response.text
+
+
 def test_update_category_toggles_is_income(session, client):
     category = Category(name="Salary", monthly_limit_cents=0, is_income=False)
     session.add(category)

@@ -5,12 +5,23 @@ from app.config import Settings
 from app.scheduler import create_scheduler
 
 
-def test_create_scheduler_registers_daily_sync_and_digest_jobs():
+def test_create_scheduler_registers_daily_sync_digest_and_month_end_jobs():
     settings = Settings(digest_frequency="daily", sync_hour_utc=6)
     scheduler = create_scheduler(settings, engine=None)
 
     job_ids = {job.id for job in scheduler.get_jobs()}
-    assert job_ids == {"daily_sync", "digest"}
+    assert job_ids == {"daily_sync", "digest", "month_end_summary"}
+
+
+def test_month_end_summary_job_fires_on_configured_day():
+    settings = Settings(sync_hour_utc=6, month_end_summary_day=5)
+    scheduler = create_scheduler(settings, engine=None)
+    job = scheduler.get_job("month_end_summary")
+    assert isinstance(job.trigger, CronTrigger)
+    fields = {f.name: str(f) for f in job.trigger.fields if not f.is_default}
+    assert fields.get("day") == "5"
+    assert fields.get("hour") == "6"
+    assert fields.get("minute") == "30"
 
 
 def test_weekly_digest_uses_day_of_week_trigger():
