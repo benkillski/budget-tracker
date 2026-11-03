@@ -1,4 +1,5 @@
 import logging
+from calendar import monthrange
 from datetime import date, timedelta
 
 from sqlmodel import Session, func, select
@@ -7,7 +8,9 @@ from app.budget_calc import compute_budget_period, compute_income_period, month_
 from app.config import Settings
 from app.models import AlertLog, SyncStatus, Transaction
 from app.notifications import (
+    AlertContext,
     DigestContent,
+    RecentTransaction,
     SMTPConfig,
     send_alert_email,
     send_digest_email,
@@ -19,8 +22,33 @@ from app.sync_service import run_sync
 from app.timeutil import utc_now
 
 SYNC_FAILURE_RENOTIFY = timedelta(hours=24)
+ALERT_RECENT_TRANSACTIONS_LIMIT = 5
 
 logger = logging.getLogger(__name__)
+
+
+def _recent_transactions(session, category_id, start, end) -> list[RecentTransaction]:
+    """Return the most-recent expense transactions in a category for the
+    current month, newest first, up to ALERT_RECENT_TRANSACTIONS_LIMIT."""
+    rows = session.exec(
+        select(Transaction)
+        .where(
+            Transaction.category_id == category_id,
+            Transaction.posted_at >= start,
+            Transaction.posted_at <= end,
+            Transaction.amount_cents < 0,
+        )
+        .order_by(Transaction.posted_at.desc())
+        .limit(ALERT_RECENT_TRANSACTIONS_LIMIT)
+    ).all()
+    return [
+        RecentTransaction(
+            posted_at_label=t.posted_at.strftime("%Y-%m-%d"),
+            payee=t.payee,
+            amount_cents=t.amount_cents,
+        )
+        for t in rows
+    ]
 
 
 def _smtp_config(settings: Settings) -> SMTPConfig:
@@ -48,10 +76,19 @@ def daily_sync_job(settings: Settings, engine) -> None:
             result = run_sync(session, client, settings.warning_threshold_pct, settings.alert_threshold_pct)
 
             now = utc_now()
+            start, end = month_bounds(now.year, now.month)
+            days_in_month = monthrange(now.year, now.month)[1]
             for crossing in result.newly_crossed:
+                recent = _recent_transactions(session, crossing.category_id, start, end)
+                context = AlertContext(
+                    crossing=crossing,
+                    recent_transactions=recent,
+                    days_elapsed=now.day,
+                    days_in_month=days_in_month,
+                )
                 # Send first, log only after success: if SMTP fails, no AlertLog is
                 # written, so the threshold crossing is retried on the next sync.
-                send_alert_email(smtp_config, crossing)
+                send_alert_email(smtp_config, context)
                 session.add(
                     AlertLog(
                         category_id=crossing.category_id,
