@@ -2,14 +2,14 @@
   "blockedBy": [
     "T-010"
   ],
-  "completedDate": null,
+  "completedDate": "2026-11-03",
   "createdDate": "2026-10-28",
   "description": "On day 5 of each new month (configurable via a MONTH_END_SUMMARY_DAY env var, default 5), send a recap of the previous month: totals (income / spent / net), per-category spending vs limit, carry-over observations if we want them. Day 5 instead of day 1 gives SimpleFIN time to post late transactions (some banks lag 2-3 days on month-end postings).\n\nSeparate scheduled APScheduler job from the daily digest — add a new CronTrigger(day=MONTH_END_SUMMARY_DAY, hour=sync_hour_utc, minute=30). Reuse the HTML template infra from T-010. Could also include:\n- Biggest category by spend\n- Biggest surprise (largest overage vs limit)\n- Fixed categories: list of ones that didn't post this month (bill missed?)\n- Uncategorized transactions still outstanding\n\nBlocked by T-010 (HTML template infra).",
   "displayId": "T-012",
   "id": "T-012",
   "order": 120,
   "phase": "post-mvp",
-  "status": "open",
+  "status": "complete",
   "title": "Month-end summary email",
   "type": "feature"
 }
